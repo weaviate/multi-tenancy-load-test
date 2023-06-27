@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: schema-resetter
+  namespace: "$K8S_NAMESPACE"
+spec:
+  containers:
+  - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
+    name: schema-resetter
+    command: ["python3", "reset_schema.py"]
+    env:
+    - name: "HOST"
+      value: "weaviate.svc.$K8S_NAMESPACE.svc.cluster.local"
+  restartPolicy: Never
