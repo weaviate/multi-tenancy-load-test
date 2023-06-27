@@ -9,6 +9,9 @@ image:
   # version.
   tag: override-me
   repo: semitechnologies/weaviate
+  # Image pull policy: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+  pullPolicy: IfNotPresent
+  pullSecrets: []
 
 # overwrite command and args if you want to run specific startup scripts, for
 # example setting the nofile limit
@@ -34,6 +37,27 @@ args:
 #   - "-c"
 #   - "ulimit -n 65535 && /bin/weaviate --host 0.0.0.0 --port 8080 --scheme http --config-file /weaviate-config/conf.yaml"
 
+
+# it is possible to change the sysctl's 'vm.max_map_count' using initContainer for Weaviate,
+# the init Container runs before Weaviate Container and sets the value for the WHOLE node
+# to the one provided below.
+# it is possible to run additional initContainer before Weaviate is up and running. You can specify the
+# containers as a list in `extraInitContainers`, exactly how they are defined in a kubernetes manifest:
+#   https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+initContainers:
+  sysctlInitContainer:
+    enabled: true
+    sysctlVmMaxMapCount: 524288
+    image:
+      registry: docker.io
+      repo: alpine
+      tag: latest
+      pullPolicy: IfNotPresent
+  
+  extraInitContainers: {}
+  # - image: some-image
+  #   name: some-name
+
 # Scale replicas of Weaviate. Note that as of v1.8.0 dynamic scaling is limited
 # to cases where no data is imported yet. Scaling down after importing data may
 # break usability. Full dynamic scalability will be added in a future release.
@@ -42,9 +66,6 @@ resources:
   requests:
     cpu: '6'
     memory: '24Gi'
-  # limits:
-  #   cpu: '1000m'
-  #   memory: '1Gi'
 
 
 # Add a service account ot the Weaviate pods if you need Weaviate to have permissions to
@@ -113,9 +134,43 @@ terminationGracePeriodSeconds: 600
 authentication:
   anonymous_access:
     enabled: true
+  # This configuration allows to add API keys to Weaviate. This configuration allows only
+  # plain text API Keys, if you want to store the API Keys in a Kubernetes secret you can
+  # configure the same configuration with ENV Vars. Read the `env` section below on what
+  # needs to be configured. If using ENV Vars over this make sure to comment out the whole
+  # `apikey` section (as it is by default). ENV Vars has priority over this config.
+  # apikey:
+  #   enabled: false
+  #   # Any number of allowed API Keys as plain text
+  #   allowed_keys:
+  #     - readOnly-plainText-API-Key
+  #     - admin-plainText-API-Key
+  #   # You can either set a single user for all the listed Allowed API keys OR
+  #   # one user per API Key, i.e. length(apikey.allowed_keys) == length(apikey.users) OR
+  #   # length(apikey.users) == 1
+  #   # NOTE: Make sure the lister Users are added to the Authorization as well.
+  #   users:
+  #     - api-key-user-readOnly
+  #     - api-key-user-admin
+  oidc:
+    enabled: false
+    # issuer: ''
+    # username_claim: ''
+    # groups_claim: ''
+    # client_id: ''
+
 authorization:
   admin_list:
     enabled: false
+    # users:
+    # - admin_user1
+    # - admin_user2
+    # - api-key-user-admin
+    # read_only_users:
+    # - readonly_user1
+    # - readonly_user2
+    # - api-key-user-readOnly
+
 query_defaults:
   limit: 100
 debug: false
@@ -148,8 +203,29 @@ env:
   # whether to re-index/-compute the vector dimensions metric (needed if upgrading from weaviate < v1.16.0)
   REINDEX_VECTOR_DIMENSIONS_AT_STARTUP: false
 
-envSecrets:
+  ##########################
+  # API Keys with ENV Vars #
+  ##########################
+  # If using ENV Vars to set up API Keys make sure to have `authentication.apikey` block commented out
+  # to avoid any future changes. ENV Vars has priority over the config above `authentication.apikey`.
+  # If using `authentication.apikey `the below ENV Vars will be used because they have priority,
+  # so comment them out to avoid any future changes.
+  # Enables API key authentication. If it is set to 'false' the AUTHENTICATION_APIKEY_ALLOWED_KEYS
+  # and AUTHENTICATION_APIKEY_USERS will not have any effect.
+  # AUTHENTICATION_APIKEY_ENABLED: 'true'
 
+  # List one or more keys, separated by commas. Each key corresponds to a specific user identity below.
+  # If you want to use a kubernetes secret for the API Keys comment out this Variable and use the one in `envSecrets` below
+  # AUTHENTICATION_APIKEY_ALLOWED_KEYS: 'jane-secret-key,ian-secret-key'  (plain text)
+
+  # List one or more user identities, separated by commas. You can have only one User for all the keys or one user per key.
+  # The User/s can be a simple name or an email, no matter if it exists or not.
+  # NOTE: Make sure to add the users to the authorization above overwise they will not be allowed to interact with Weaviate.
+  # AUTHENTICATION_APIKEY_USERS: 'jane@doe.com,ian-smith'
+
+envSecrets:
+  # create a Kubernetes secret with AUTHENTICATION_APIKEY_ALLOWED_KEYS key and its respective value
+  # AUTHENTICATION_APIKEY_ALLOWED_KEYS: name-of-the-k8s-secret-containing-the-comma-separated-api-keys
 
 # Configure backup providers
 backups:
@@ -233,7 +309,7 @@ backups:
     # 2. create a Kubernetes secret with GOOGLE_APPLICATION_CREDENTIALS key and its respective value
     #     Set the Key and the secret where it is set in `envSecrets` section below
     secrets: {}
-    #   GOOGLE_APPLICATION_CREDENTIALS: credentials-json-string
+    #   GOOGLE_APPLICATION_CREDENTIALS: credentials-json-string (plain text)
 
     # If one has already defined a secret with GOOGLE_APPLICATION_CREDENTIALS one can pass them using
     # this setting:
@@ -293,6 +369,8 @@ modules:
     repo: semitechnologies/contextionary
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     envconfig:
       occurrence_weight_linear_factor: 0.75
       neighbor_occurrence_ignore_percentile: 5
@@ -342,8 +420,18 @@ modules:
     repo: semitechnologies/transformers-inference
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: transformers-inference
-    probeInitialDelaySeconds: 120
+    # Deprecated setting use initialDelaySeconds instead in each probe instead
+    # probeInitialDelaySeconds: 120
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
     envconfig:
       # enable for CUDA support. Your K8s cluster needs to be configured
       # accordingly and you need to explicitly set GPU requests & limits below
@@ -395,8 +483,16 @@ modules:
         tag: facebook-dpr-ctx_encoder-single-nq-base
         repo: semitechnologies/transformers-inference
         registry: docker.io
+        imagePullSecrets: []
         replicas: 1
         fullnameOverride: transformers-inference-passage
+        livenessProbe:
+          initialDelaySeconds: 120
+          periodSeconds: 3
+          timeoutSeconds: 3
+        readinessProbe:
+          initialDelaySeconds: 120
+          periodSeconds: 3
         envconfig:
           # enable for CUDA support. Your K8s cluster needs to be configured
           # accordingly and you need to explicitly set GPU requests & limits below
@@ -441,8 +537,16 @@ modules:
         tag: facebook-dpr-question_encoder-single-nq-base
         repo: semitechnologies/transformers-inference
         registry: docker.io
+        imagePullSecrets: []
         replicas: 1
         fullnameOverride: transformers-inference-query
+        livenessProbe:
+          initialDelaySeconds: 120
+          periodSeconds: 3
+          timeoutSeconds: 3
+        readinessProbe:
+          initialDelaySeconds: 120
+          periodSeconds: 3
         envconfig:
           # enable for CUDA support. Your K8s cluster needs to be configured
           # accordingly and you need to explicitly set GPU requests & limits below
@@ -519,6 +623,20 @@ modules:
     # an environment variable
     apiKey: ''
 
+  # The text2vec-palm module uses Google PaLM Embeddings API
+  # to dynamically compute vector embeddings based on the
+  # sentence's context.
+  # More information about Google PaLM Embeddings API can be found here:
+  # https://developers.generativeai.google/
+  text2vec-palm:
+
+    # enable if you want to use Google PaLM module
+    enabled: false
+
+    # Set your Google PaLM API Key to be passed to Weaviate pod as
+    # an environment variable
+    apiKey: ''
+
   # The ref2vec-centroid module
   ref2vec-centroid:
 
@@ -546,7 +664,16 @@ modules:
     repo: semitechnologies/multi2vec-clip
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: clip-inference
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
     envconfig:
       # enable for CUDA support. Your K8s cluster needs to be configured
       # accordingly and you need to explicitly set GPU requests & limits below
@@ -587,7 +714,16 @@ modules:
     repo: semitechnologies/qna-transformers
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: qna-transformers
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
     envconfig:
       # enable for CUDA support. Your K8s cluster needs to be configured
       # accordingly and you need to explicitly set GPU requests & limits below
@@ -655,6 +791,30 @@ modules:
     # an environment variable
     apiKey: ''
 
+  # The generative-cohere module uses Cohere Generate API
+  # More information about Cohere's Generate API can be found here:
+  # https://docs.cohere.com/reference/generate
+  generative-cohere:
+
+    # enable if you want to use Cohere generative module
+    enabled: false
+
+    # Set your Cohere API Key to be passed to Weaviate pod as
+    # an environment variable
+    apiKey: ''
+
+  # The generative-palm module uses Google PaLM API.
+  # More information about Google PaLM API can be found here:
+  # https://developers.generativeai.google/
+  generative-palm:
+
+    # enable if you want to use Google PaLM module
+    enabled: false
+
+    # Set your Google PaLM API Key to be passed to Weaviate pod as
+    # an environment variable
+    apiKey: ''
+
   # The img2vec-neural module uses neural networks, to generate
   # a vector representation of the image
   img2vec-neural:
@@ -666,7 +826,16 @@ modules:
     repo: semitechnologies/img2vec-pytorch
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: img2vec-neural
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
     envconfig:
       # enable for CUDA support. Your K8s cluster needs to be configured
       # accordingly and you need to explicitly set GPU requests & limits below
@@ -719,7 +888,16 @@ modules:
     repo: semitechnologies/text-spellcheck-model
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: text-spellcheck
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
 
     resources:
       requests:
@@ -755,7 +933,16 @@ modules:
     repo: semitechnologies/ner-transformers
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: ner-transformers
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
     envconfig:
       # enable for CUDA support. Your K8s cluster needs to be configured
       # accordingly and you need to explicitly set GPU requests & limits below
@@ -807,7 +994,16 @@ modules:
     repo: semitechnologies/sum-transformers
     registry: docker.io
     replicas: 1
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
     fullnameOverride: sum-transformers
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
+      timeoutSeconds: 3
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 3
     envconfig:
       # enable for CUDA support. Your K8s cluster needs to be configured
       # accordingly and you need to explicitly set GPU requests & limits below
