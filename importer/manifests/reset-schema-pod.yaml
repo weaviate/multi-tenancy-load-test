@@ -10,5 +10,5 @@ spec:
     command: ["python3", "reset_schema.py"]
     env:
     - name: "HOST"
-      value: "weaviate.svc.$K8S_NAMESPACE.svc.cluster.local"
+      value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
   restartPolicy: Never

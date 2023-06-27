@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: importer
+  namespace: "$K8S_NAMESPACE"
+spec:
+  parallelism: $PARALLEL_IMPORTERS
+  template:
+    spec:
+      containers:
+      - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
+        name: schema-resetter
+        command: ["python3", "tenants_and_data.py"]
+        env:
+        - name: "HOST"
+          value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
+        - name: "TOTAL_TENANTS"
+          value: "$TENANTS_PER_JOB"
+        - name: "TENANTS_PER_CYCLE"
+          value: "50"
+        - name: "OBJECTS_PER_TENANT"
+          value: "$OBJECTS_PER_TENANT"
+      restartPolicy: Never
+  backoffLimit: 4

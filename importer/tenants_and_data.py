@@ -6,6 +6,7 @@ import numpy as np
 import uuid
 import os
 import requests
+import string
 from loguru import logger
 from typing import Optional
 
@@ -17,15 +18,17 @@ tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
 objects_per_tenant = int(os.getenv("OBJECTS_PER_TENANT"))
 
 
+def random_name(length):
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for i in range(length))
+
+
 def do(client: weaviate.Client):
     i = 0
     while i < total_tenants:
-        min_tenant = i
-        max_tenant = i + tenants_per_cycle
         # create next batch of tenants
-        new_tenants = []
-        for t in range(min_tenant, max_tenant):
-            new_tenants.append({"name": f"tenant_{t}"})
+        tenant_names = [f"tenant_{random_name(12)}" for i in range(tenants_per_cycle)]
+        new_tenants = [{"name": t} for t in tenant_names]
 
         before = time.time()
         res = requests.post(
@@ -36,7 +39,7 @@ def do(client: weaviate.Client):
 
         # create objects across all tenants of batch
         before = time.time()
-        load_records(client, min_tenant)
+        load_records(client, tenant_names)
         took = time.time() - before
         logger.info(
             f"import {objects_per_tenant} objects for {tenants_per_cycle} tenants ({objects_per_tenant*tenants_per_cycle} total) took {took}s"
@@ -65,9 +68,8 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_records(client: weaviate.Client, min_tenant):
-    for tid in range(min_tenant, min_tenant + tenants_per_cycle):
-        tenant = f"tenant_{tid}"
+def load_records(client: weaviate.Client, tenant_names):
+    for tenant in tenant_names:
         client.batch.configure(
             batch_size=1000, callback=handle_errors, tenant_key=tenant
         )
