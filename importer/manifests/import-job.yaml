@@ -5,7 +5,13 @@ metadata:
   namespace: "$K8S_NAMESPACE"
 spec:
   parallelism: $PARALLEL_IMPORTERS
+  completions: 1
   template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /
+        prometheus.io/port: "8000"
     spec:
       containers:
       - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"

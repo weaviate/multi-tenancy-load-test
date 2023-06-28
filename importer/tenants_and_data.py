@@ -9,6 +9,8 @@ import requests
 import string
 from loguru import logger
 from typing import Optional
+from prometheus_client import start_http_server, Counter, Summary
+
 
 host = os.getenv("HOST")
 client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
@@ -24,6 +26,12 @@ def random_name(length):
 
 
 def do(client: weaviate.Client):
+    start_http_server(8000)
+
+    tenants_added = Counter("tenants_added_total", "Number of tenants added.")
+    objects_added = Counter("objects_added_total", "Number of objects added.")
+    tenants_batch = Summary("tenant_batch_seconds", "Duration it took to add tenants")
+    objects_batch = Summary("objects_batch_seconds", "Duration it took to add objects")
     i = 0
     while i < total_tenants:
         # create next batch of tenants
@@ -37,7 +45,9 @@ def do(client: weaviate.Client):
         if res.status_code != 200:
             logger.error(res.json())
             sys.exit()
+        tenants_added.inc(tenants_per_cycle)
         took = time.time() - before
+        tenants_batch.observe(took)
         logger.info(f"created {tenants_per_cycle} tenants in {took}s")
 
         # create objects across all tenants of batch
@@ -48,7 +58,8 @@ def do(client: weaviate.Client):
             f"import {objects_per_tenant} objects for {tenants_per_cycle} tenants ({objects_per_tenant*tenants_per_cycle} total) took {took}s"
         )
 
-        i += tenants_per_cycle
+        objects_batch.observe(took)
+        objects_added.inc(objects_per_tenant * tenants_per_cycle)
 
 
 def handle_errors(results: Optional[dict]) -> None:
