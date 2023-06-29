@@ -39,12 +39,17 @@ def do(client: weaviate.Client):
         new_tenants = [{"name": t} for t in tenant_names]
 
         before = time.time()
-        res = requests.post(
-            f"http://{host}/v1/schema/MultiTenancyTest/tenants", json=new_tenants
-        )
-        if res.status_code != 200:
-            logger.error(res.json())
-            sys.exit()
+        for attempt in range(100):
+            res = requests.post(
+                f"http://{host}/v1/schema/MultiTenancyTest/tenants", json=new_tenants
+            )
+            if res.status_code != 200:
+                logger.error(res.json())
+                sleep = random.randrange(0, 5000)
+                logger.info(f"sleep {sleep}ms, then retry {attempt}")
+                time.sleep(sleep / 1000)
+            else:
+                break
         tenants_added.inc(tenants_per_cycle)
         took = time.time() - before
         tenants_batch.observe(took)
