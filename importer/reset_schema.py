@@ -47,6 +47,9 @@ def reset_schema(client: weaviate.Client):
     }
     res = requests.post(f"http://{host}/v1/schema", json=class_payload)
     print(res.status_code)
+    if res.status_code > 299:
+        print(res.json())
+        sys.exit(1)
 
 
 reset_schema(client)
