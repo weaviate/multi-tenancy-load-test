@@ -26,7 +26,7 @@ def random_name(length):
 
 
 def do(client: weaviate.Client):
-    start_http_server(8000)
+    # start_http_server(8000)
 
     tenants_added = Counter("tenants_added_total", "Number of tenants added.")
     objects_added = Counter("objects_added_total", "Number of objects added.")
