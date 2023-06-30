@@ -35,7 +35,7 @@ def do(client: weaviate.Client):
     i = 0
     while i < total_tenants:
         # create next batch of tenants
-        tenant_names = [f"{random_name(24)}" for i in range(tenants_per_cycle)]
+        tenant_names = [f"{random_name(24)}" for j in range(tenants_per_cycle)]
         new_tenants = [{"name": t} for t in tenant_names]
 
         before = time.time()
@@ -65,6 +65,7 @@ def do(client: weaviate.Client):
 
         objects_batch.observe(took)
         objects_added.inc(objects_per_tenant * tenants_per_cycle)
+        i += tenants_per_cycle
 
 
 def handle_errors(results: Optional[dict]) -> None:

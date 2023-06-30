@@ -17,6 +17,7 @@ def reset_schema(client: weaviate.Client):
     class_payload = {
         "class": "MultiTenancyTest",
         "description": "A class to test multi-tenancy with many props",
+        "vectorizer": "none",
         "properties": [
             {
                 "dataType": ["text"],
