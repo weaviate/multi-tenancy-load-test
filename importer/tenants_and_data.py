@@ -91,7 +91,8 @@ def handle_errors(results: Optional[dict]) -> None:
 def load_records(client: weaviate.Client, tenant_names):
     for tenant in tenant_names:
         client.batch.configure(
-            batch_size=1000, callback=handle_errors, tenant_key=tenant
+            batch_size=1000,
+            callback=handle_errors,
         )
         with client.batch as batch:
             for i in range(objects_per_tenant):
@@ -114,6 +115,7 @@ def load_records(client: weaviate.Client, tenant_names):
                         # "text4": f"{random.randint(0, 10000)}",
                         # "text5": f"{random.randint(0, 10000)}",
                     },
+                    tenant=tenant,
                     vector=np.random.rand(32, 1),
                     class_name="MultiTenancyTest",
                 )
