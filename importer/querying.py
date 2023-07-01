@@ -26,6 +26,10 @@ query_result = Counter(
     ["result"],
 )
 
+replication = False
+if os.getenv("REPLICATION") is not None and os.getenv("REPLICATION") == "true":
+    replication = True
+
 
 def do():
     prometheus_port = int(os.getenv("PROMETHEUS_PORT") or 8000)
@@ -75,22 +79,25 @@ def query(client, tenant, total, qpm):
         result = None
         fail = False
         try:
-            result = (
+            q = (
                 client.query.get("MultiTenancyTest", ["int1"])
                 .with_limit(10)
                 .with_tenant(tenant)
                 .with_additional("id")
                 .with_near_vector({"vector": np.random.rand(1, 32)})
-                .with_consistency_level(ConsistencyLevel.ONE)
-                .do()
             )
+
+            if replication:
+                q = q.with_consistency_level(ConsistencyLevel.ONE)
+            result = q.do()
             if "errors" in result:
                 logger.error(result["errors"])
                 fail = True
             else:
                 if len(result["data"]["Get"]["MultiTenancyTest"]) != 10:
                     fail = True
-        except:
+        except Exception as e:
+            logger.error(e)
             fail = True
         took = time.time() - before
         vector_query.observe(took)
