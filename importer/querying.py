@@ -1,4 +1,6 @@
 import weaviate
+from weaviate.data.replication import ConsistencyLevel
+
 import time
 import sys
 import os
@@ -7,7 +9,7 @@ import random
 from loguru import logger
 from threading import Thread
 import numpy as np
-from prometheus_client import start_http_server, Summary, Gauge
+from prometheus_client import start_http_server, Summary, Gauge, Counter
 
 vector_query = Summary("vector_query_seconds", "duration of a single vector query")
 querying_tenants = Gauge(
@@ -17,6 +19,11 @@ querying_tenants = Gauge(
 querying_users = Gauge(
     "querying_users_total",
     "number of users (across tenants) who are currently sending queries",
+)
+query_result = Counter(
+    "query_result_total",
+    "duration of a single vector query",
+    ["result"],
 )
 
 
@@ -65,23 +72,34 @@ def query(client, tenant, total, qpm):
         wait = 2 * random.random() * avg_wait
         time.sleep(wait)
         before = time.time()
-        result = (
-            client.query.get("MultiTenancyTest", ["int1"])
-            .with_limit(10)
-            .with_tenant(tenant)
-            .with_additional("id")
-            .with_near_vector({"vector": np.random.rand(1, 32)})
-            .do()
-        )
+        result = None
         fail = False
-        if "errors" in result:
-            fail = True
-        else:
-            if len(result["data"]["Get"]["MultiTenancyTest"]) != 10:
+        try:
+            result = (
+                client.query.get("MultiTenancyTest", ["int1"])
+                .with_limit(10)
+                .with_tenant(tenant)
+                .with_additional("id")
+                .with_near_vector({"vector": np.random.rand(1, 32)})
+                .with_consistency_level(ConsistencyLevel.ONE)
+                .do()
+            )
+            if "errors" in result:
+                logger.error(result["errors"])
                 fail = True
-
+            else:
+                if len(result["data"]["Get"]["MultiTenancyTest"]) != 10:
+                    fail = True
+        except:
+            fail = True
         took = time.time() - before
         vector_query.observe(took)
+
+        if fail:
+            query_result.labels(result="failure").inc()
+        else:
+            query_result.labels(result="success").inc()
+
         if i % 100 == 0:
             print(f"progress: {i}/{total} for tenant={tenant}")
     querying_users.dec()
