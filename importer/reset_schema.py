@@ -9,6 +9,7 @@ from loguru import logger
 from typing import Optional
 
 host = os.getenv("HOST")
+replication_factor = int(os.getenv("REPLICATION_FACTOR") or 1)
 client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
 
 
@@ -18,6 +19,9 @@ def reset_schema(client: weaviate.Client):
         "class": "MultiTenancyTest",
         "description": "A class to test multi-tenancy with many props",
         "vectorizer": "none",
+        "replicationConfig": {
+            "factor": replication_factor,
+        },
         "properties": [
             {
                 "dataType": ["text"],
