@@ -18,6 +18,7 @@ client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
 total_tenants = int(os.getenv("TOTAL_TENANTS"))
 tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
 objects_per_tenant = int(os.getenv("OBJECTS_PER_TENANT"))
+prometheus_port = int(os.getenv("PROMETHEUS_PORT") or 8000)
 
 
 def random_name(length):
@@ -26,7 +27,7 @@ def random_name(length):
 
 
 def do(client: weaviate.Client):
-    # start_http_server(8000)
+    start_http_server(prometheus_port)
 
     tenants_added = Counter("tenants_added_total", "Number of tenants added.")
     objects_added = Counter("objects_added_total", "Number of objects added.")

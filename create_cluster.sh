@@ -8,7 +8,6 @@ gcloud beta container \
   --project "semi-automated-benchmarking" clusters create "$cluster_name" \
   --zone "$zone" \
   --no-enable-basic-auth \
-  --cluster-version "1.25.8-gke.1000" \
   --release-channel "regular" \
   --machine-type "$machine_type" \
   --image-type "COS_CONTAINERD" \
