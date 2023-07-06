@@ -186,7 +186,8 @@ env:
   GOGC: 100
 
   # Expose metrics on port 2112 for Prometheus to scrape
-  PROMETHEUS_MONITORING_ENABLED: false
+  PROMETHEUS_MONITORING_ENABLED: true
+  PROMETHEUS_MONITORING_GROUP_CLASSES: true
 
   # Set a MEM limit for the Weaviate Pod so it can help you both increase GC-related 
   # performance as well as avoid GC-related out-of-memory (“OOM”) situations
@@ -202,6 +203,8 @@ env:
 
   # whether to re-index/-compute the vector dimensions metric (needed if upgrading from weaviate < v1.16.0)
   REINDEX_VECTOR_DIMENSIONS_AT_STARTUP: false
+
+  CLUSTER_IGNORE_SCHEMA_SYNC: false
 
   ##########################
   # API Keys with ENV Vars #
@@ -287,19 +290,19 @@ backups:
     #   AWS_SECRET_ACCESS_KEY: name-of-the-k8s-secret-containing-the-key
 
   gcs:
-    enabled: false
+    enabled: true
     envconfig:
       # Configure bucket where backups should be saved, this setting is mandatory
-      BACKUP_GCS_BUCKET: weaviate-backups
+      BACKUP_GCS_BUCKET: mt-load-test-backups
 
       # Optional setting. Defaults to empty string.
       # Set this option if you want to save backups to a given location
       # inside the bucket
-      # BACKUP_GCS_PATH: path/inside/bucket
+      BACKUP_GCS_PATH: mt-load-test
 
       # You can pass environment Google settings here:
       # Define the project
-      # GOOGLE_CLOUD_PROJECT: project-id
+      GOOGLE_CLOUD_PROJECT: semi-automated-benchmarking
 
     # For Weaviate to be able to create bucket objects it needs a ServiceAccount credentials to authenticate to GCP.
     # The ServiceAccount must have permissions to read/create/delete bucket objects.
@@ -309,12 +312,12 @@ backups:
     # 2. create a Kubernetes secret with GOOGLE_APPLICATION_CREDENTIALS key and its respective value
     #     Set the Key and the secret where it is set in `envSecrets` section below
     secrets: {}
-    #   GOOGLE_APPLICATION_CREDENTIALS: credentials-json-string (plain text)
+      # GOOGLE_APPLICATION_CREDENTIALS: credentials-json-string (plain text)
 
     # If one has already defined a secret with GOOGLE_APPLICATION_CREDENTIALS one can pass them using
     # this setting:
-    envSecrets: {}
-    #   GOOGLE_APPLICATION_CREDENTIALS: name-of-the-k8s-secret-containing-the-key
+    envSecrets:
+      GOOGLE_APPLICATION_CREDENTIALS: backup-secret
 
   azure:
     enabled: false
@@ -1060,6 +1063,10 @@ custom_config_map:
 
 # Pass any annotations to Weaviate pods
 annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "2112"
+
 
 nodeSelector:
 

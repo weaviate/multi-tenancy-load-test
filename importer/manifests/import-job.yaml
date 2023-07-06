@@ -5,7 +5,7 @@ metadata:
   namespace: "$K8S_NAMESPACE"
 spec:
   parallelism: $PARALLEL_IMPORTERS
-  completions: $IMPORT_COMPLETIONS
+  completions: $IMPORTER_COMPLETIONS
   template:
     metadata:
       annotations:
