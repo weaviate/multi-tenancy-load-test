@@ -10,6 +10,6 @@ helm upgrade \
   --values values.yaml \
   --namespace "$K8S_NAMESPACE" \
   --set "image.tag=$WEAVIATE_VERSION" \
-  --set replicas=3
+  --set replicas="K8S_POD_REPLICAS"
 
 

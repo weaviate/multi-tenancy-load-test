@@ -1850,6 +1850,8 @@ grafana:
     default:
       home:
         file: dashboards/home.json
+      importing:
+        file: dashboards/importing.json
     #   prometheus-stats:
     #     gnetId: 2
     #     revision: 2
