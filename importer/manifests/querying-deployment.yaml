@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-deployment
+  labels:
+    app: query
+spec:
+  replicas: $QUERY_REPLICAS
+  selector:
+    matchLabels:
+      app: query
+  template:
+    metadata:
+      labels:
+        app: query
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+      - name: query
+        command: ["python3", "querying.py"]
+        image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
+        ports:
+        - containerPort: 8000
+        env:
+          - name: "HOST"
+            value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
+          - name: "TENANTS"
+            value: "$QUERY_TENANTS_PER_POD"
+          - name: "PARALLEL_QUERIES_PER_TENANT"
+            value: "$QUERY_USERS_PER_TENANT"
+          - name: "QUERIES_PER_TENANT"
+            value: "$QUERY_TOTAL_PER_TENANT"
+          - name: "QUERY_FREQUENCY_PER_MINUTE"
+            value: "$QUERY_FREQUENCY_PER_MINUTE"
+          - name: "REPLICATION"
+            value: "false"

@@ -37,3 +37,6 @@ gcloud beta container \
 
 gcloud container clusters get-credentials "$cluster_name" --zone "$zone" --project semi-automated-benchmarking
 
+kubectl create ns "$K8S_NAMESPACE"
+
+kubectl config set-context $(kubectl config current-context) --namespace $K8S_NAMESPACE
