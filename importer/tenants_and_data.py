@@ -19,6 +19,7 @@ total_tenants = int(os.getenv("TOTAL_TENANTS"))
 tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
 objects_per_tenant = int(os.getenv("OBJECTS_PER_TENANT"))
 prometheus_port = int(os.getenv("PROMETHEUS_PORT") or 8000)
+implicit_ratio = float(os.getenv("IMPLICIT_TENANT_RATIO"))
 
 
 def random_name(length):
@@ -30,6 +31,9 @@ def do(client: weaviate.Client):
     start_http_server(prometheus_port)
 
     tenants_added = Counter("tenants_added_total", "Number of tenants added.")
+    tenants_added_implicitly = Counter(
+        "tenants_added_implicitly_total", "Number of tenants added."
+    )
     objects_added = Counter("objects_added_total", "Number of objects added.")
     tenants_batch = Summary("tenant_batch_seconds", "Duration it took to add tenants")
     objects_batch = Summary("objects_batch_seconds", "Duration it took to add objects")
@@ -39,22 +43,29 @@ def do(client: weaviate.Client):
         tenant_names = [f"{random_name(24)}" for j in range(tenants_per_cycle)]
         new_tenants = [{"name": t} for t in tenant_names]
 
-        before = time.time()
-        for attempt in range(100):
-            res = requests.post(
-                f"http://{host}/v1/schema/MultiTenancyTest/tenants", json=new_tenants
-            )
-            if res.status_code != 200:
-                logger.error(res.json())
-                sleep = random.randrange(0, 5000)
-                logger.info(f"sleep {sleep}ms, then retry {attempt}")
-                time.sleep(sleep / 1000)
-            else:
-                break
-        tenants_added.inc(tenants_per_cycle)
-        took = time.time() - before
-        tenants_batch.observe(took)
-        logger.info(f"created {tenants_per_cycle} tenants in {took}s")
+        implicit = random.random() <= implicit_ratio
+
+        if implicit:
+            logger.info(f"did not create any tenants this round (implicit batch)")
+            tenants_added_implicitly.inc(tenants_per_cycle)
+        else:
+            before = time.time()
+            for attempt in range(100):
+                res = requests.post(
+                    f"http://{host}/v1/schema/MultiTenancyTest/tenants",
+                    json=new_tenants,
+                )
+                if res.status_code != 200:
+                    logger.error(res.json())
+                    sleep = random.randrange(0, 5000)
+                    logger.info(f"sleep {sleep}ms, then retry {attempt}")
+                    time.sleep(sleep / 1000)
+                else:
+                    break
+            tenants_added.inc(tenants_per_cycle)
+            took = time.time() - before
+            tenants_batch.observe(took)
+            logger.info(f"created {tenants_per_cycle} tenants in {took}s")
 
         # create objects across all tenants of batch
         before = time.time()

@@ -46,6 +46,7 @@ def reset_schema(client: weaviate.Client):
         ],
         "multiTenancyConfig": {
             "enabled": True,
+            "autoTenantCreation": True,
         },
     }
     res = requests.post(f"http://{host}/v1/schema", json=class_payload)

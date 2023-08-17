@@ -26,5 +26,7 @@ spec:
           value: "50"
         - name: "OBJECTS_PER_TENANT"
           value: "$OBJECTS_PER_TENANT"
+        - name: "IMPLICIT_TENANT_RATIO"
+          value: "$IMPLICIT_TENANT_RATIO"
       restartPolicy: Never
   backoffLimit: 4
