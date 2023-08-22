@@ -94,7 +94,9 @@ def query(client, tenant, total, qpm):
                 logger.error(result["errors"])
                 fail = True
             else:
-                if len(result["data"]["Get"]["MultiTenancyTest"]) != 10:
+                res_len = len(result["data"]["Get"]["MultiTenancyTest"])
+                if res_len != 10:
+                    logger.error(f"Missing results. Requested 10, but got {res_len}")
                     fail = True
         except Exception as e:
             logger.error(e)
