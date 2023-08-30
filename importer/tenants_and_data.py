@@ -152,7 +152,7 @@ def load_records(client: weaviate.Client, tenant_names):
                     "text1": f"{random.randint(0, 10000)}",
                     "text2": f"{random.randint(0, 10000)}",
                 },
-                vector=np.random.rand(1536, 1)[0].tolist(),
+                vector=np.random.rand(1, 1536).tolist()[0],
             )
             for i in range(objects_per_tenant)
         ]
