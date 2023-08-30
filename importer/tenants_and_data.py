@@ -20,6 +20,12 @@ tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
 objects_per_tenant = int(os.getenv("OBJECTS_PER_TENANT"))
 prometheus_port = int(os.getenv("PROMETHEUS_PORT") or 8000)
 implicit_ratio = float(os.getenv("IMPLICIT_TENANT_RATIO"))
+deactivate_tenants = False
+if (
+    os.getenv("DEACTIVATE_TENANTS") is not None
+    and os.getenv("DEACTIVATE_TENANTS") == "true"
+):
+    deactivate_tenants = True
 
 
 def random_name(length):
@@ -78,6 +84,27 @@ def do(client: weaviate.Client):
         objects_batch.observe(took)
         objects_added.inc(objects_per_tenant * tenants_per_cycle)
         i += tenants_per_cycle
+
+        if deactivate_tenants:
+            before_deactivate = time.time()
+            payload = [
+                {"name": name, "activityStatus": "COLD"} for name in tenant_names
+            ]
+
+            for attempt in range(100):
+                res = requests.put(
+                    f"http://{host}/v1/schema/MultiTenancyTest/tenants",
+                    json=payload,
+                )
+                if res.status_code != 200:
+                    logger.error(res.json())
+                    sleep = random.randrange(0, 5000)
+                    logger.info(f"sleep {sleep}ms, then retry {attempt}")
+                    time.sleep(sleep / 1000)
+                else:
+                    break
+            took = time.time() - before_deactivate
+            logger.info(f"deactivated {tenants_per_cycle} tenants in {took}s")
 
 
 def handle_errors(results: Optional[dict]) -> None:

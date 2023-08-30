@@ -30,12 +30,23 @@ replication = False
 if os.getenv("REPLICATION") is not None and os.getenv("REPLICATION") == "true":
     replication = True
 
+deactivate_tenants = False
+if (
+    os.getenv("DEACTIVATE_TENANTS") is not None
+    and os.getenv("DEACTIVATE_TENANTS") == "true"
+):
+    deactivate_tenants = True
+
+host = os.getenv("HOST")
+
 
 def do():
     prometheus_port = int(os.getenv("PROMETHEUS_PORT") or 8000)
     start_http_server(prometheus_port)
 
-    host = os.getenv("HOST")
+    wait = 30 * random.random()
+    time.sleep(wait)
+
     no_of_tenants = int(os.getenv("TENANTS") or 10)
 
     parallel_queries_per_tenant = int(os.getenv("PARALLEL_QUERIES_PER_TENANT") or 3)
@@ -49,13 +60,39 @@ def do():
     unique_tenants = len(tenants)
     tenants = tenants * parallel_queries_per_tenant
 
+    if deactivate_tenants:
+        set_tenants_status(list(set(tenants)), "HOT")
+
     querying_tenants.inc(unique_tenants)
     query_in_parallel(client, tenants, queries_per_tenant, query_frequency_per_minute)
     querying_tenants.dec(unique_tenants)
 
+    if deactivate_tenants:
+        set_tenants_status(list(set(tenants)), "COLD")
+
     # stick around for another 30s doing nothing, so we can make sure all
     # metrics are scraped
     time.sleep(30)
+
+
+def set_tenants_status(tenants, status):
+    payload = [{"name": name, "activityStatus": status} for name in tenants]
+    print(payload)
+    before = time.time()
+    for attempt in range(100):
+        res = requests.put(
+            f"http://{host}/v1/schema/MultiTenancyTest/tenants",
+            json=payload,
+        )
+        if res.status_code != 200:
+            logger.error(res.json())
+            sleep = random.randrange(0, 5000)
+            logger.info(f"sleep {sleep}ms, then retry {attempt}")
+            time.sleep(sleep / 1000)
+        else:
+            break
+    took = time.time() - before
+    logger.info(f"updated {len(tenants)} tenants in {took}s")
 
 
 def query_in_parallel(client, tenants, total, qpm):
@@ -115,17 +152,8 @@ def query(client, tenant, total, qpm):
 
 
 def build_tenant_list(client):
-    res = client.cluster.get_nodes_status()
-    tenants = []
-    for node in res:
-        for shard in node["shards"]:
-            if shard["objectCount"] < 100:
-                # tenant was just created, not enough objects to query yet,
-                # skip
-                continue
-
-            tenants.append(shard["name"])
-    return tenants
+    tenants = client.schema.get_class_tenants(class_name="MultiTenancyTest")
+    return [tenant.name for tenant in tenants]
 
 
 def pick_tenants(tenants, no_of_tenants):
