@@ -10,10 +10,19 @@ import string
 from loguru import logger
 from typing import Optional
 from prometheus_client import start_http_server, Counter, Summary
+from weaviate.collection.classes import (
+    DataObject,
+    Tenant,
+)
+from weaviate import Config
 
 
 host = os.getenv("HOST")
-client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
+client = weaviate.Client(
+    f"http://{host}",
+    timeout_config=(20, 240),
+    additional_config=Config(grpc_port_experimental=50051),
+)
 
 total_tenants = int(os.getenv("TOTAL_TENANTS"))
 tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
@@ -129,35 +138,26 @@ def handle_errors(results: Optional[dict]) -> None:
 
 def load_records(client: weaviate.Client, tenant_names):
     for tenant in tenant_names:
-        client.batch.configure(
-            batch_size=1000,
-            callback=handle_errors,
-        )
-        with client.batch as batch:
-            for i in range(objects_per_tenant):
-                batch.add_data_object(
-                    data_object={
-                        "tenant_id": tenant,
-                        "int1": random.randint(0, 10000),
-                        "int2": random.randint(0, 10000),
-                        # "int3": random.randint(0, 10000),
-                        # "int4": random.randint(0, 10000),
-                        # "int5": random.randint(0, 10000),
-                        "number1": random.random(),
-                        "number2": random.random(),
-                        # "number3": random.random(),
-                        # "number4": random.random(),
-                        # "number5": random.random(),
-                        "text1": f"{random.randint(0, 10000)}",
-                        "text2": f"{random.randint(0, 10000)}",
-                        # "text3": f"{random.randint(0, 10000)}",
-                        # "text4": f"{random.randint(0, 10000)}",
-                        # "text5": f"{random.randint(0, 10000)}",
-                    },
-                    tenant=tenant,
-                    vector=np.random.rand(32, 1),
-                    class_name="MultiTenancyTest",
-                )
+        collection = client.collection.get("MultiTenancyTest")
+        collection_tenant = collection.with_tenant(tenant=tenant)
+
+        objects = [
+            DataObject(
+                data={
+                    "tenant_id": tenant,
+                    "int1": random.randint(0, 10000),
+                    "int2": random.randint(0, 10000),
+                    "number1": random.random(),
+                    "number2": random.random(),
+                    "text1": f"{random.randint(0, 10000)}",
+                    "text2": f"{random.randint(0, 10000)}",
+                },
+                vector=np.random.rand(1536, 1)[0].tolist(),
+            )
+            for i in range(objects_per_tenant)
+        ]
+        collection_tenant.data.insert_many(objects)
+
         # logger.debug(f"Imported {objects_per_tenant} objs for tenant {tenant}")
 
 

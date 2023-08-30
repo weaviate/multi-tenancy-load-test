@@ -48,6 +48,10 @@ def reset_schema(client: weaviate.Client):
             "enabled": True,
             "autoTenantCreation": True,
         },
+        "vectorIndexConfig": {
+            "efConstruction": 32,
+            "maxConnections": 8,
+        },
     }
     res = requests.post(f"http://{host}/v1/schema", json=class_payload)
     print(res.status_code)
