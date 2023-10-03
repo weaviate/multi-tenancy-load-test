@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -exo pipefail
+
 cluster_name=mt-load-test
 machine_type=n2-standard-8
 initial_nodepool_size=12
@@ -23,8 +27,6 @@ gcloud beta container \
   --subnetwork "projects/semi-automated-benchmarking/regions/$region/subnetworks/default" \
   --no-enable-intra-node-visibility \
   --default-max-pods-per-node "110" \
-  --security-posture=standard \
-  --workload-vulnerability-scanning=disabled \
   --no-enable-master-authorized-networks \
   --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver \
   --enable-autoupgrade \
