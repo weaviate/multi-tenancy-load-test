@@ -34,11 +34,11 @@ def check_schema_status(client: weaviate.Client):
 
 def check_progess(client: weaviate.Client):
     res = requests.get(f"http://{host}/v1/nodes?output=verbose")
-    nodes = len(res.json().get("nodes"))
-    tenants = sum([n["stats"]["shardCount"] for n in res])
-    objects = sum([n["stats"]["objectCount"] for n in res])
+    nodes = res.json().get("nodes")
+    tenants = sum([n["stats"]["shardCount"] for n in nodes])
+    objects = sum([n["stats"]["objectCount"] for n in nodes])
     logger.info(
-        f"Progress on {nodes}-node cluster: tenants={tenants} objects={objects}"
+        f"Progress on {len(nodes)}-node cluster: tenants={tenants} objects={objects}"
     )
     if tenants >= tenants_goal:
         logger.info(f"reached tenant goal of {tenants} tenants")
