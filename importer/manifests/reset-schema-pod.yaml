@@ -8,9 +8,12 @@ spec:
   - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
     name: schema-resetter
     command: ["python3", "reset_schema.py"]
+    imagePullPolicy: Always
     env:
     - name: "HOST"
       value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
+    - name: "HOST_GRPC"
+      value: "weaviate-grpc.$K8S_NAMESPACE.svc.cluster.local"
     - name: "REPLICATION_FACTOR"
       value: "$REPLICATION_FACTOR"
   restartPolicy: Never

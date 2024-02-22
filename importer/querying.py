@@ -1,5 +1,5 @@
 import weaviate
-from weaviate.data.replication import ConsistencyLevel
+import weaviate.classes as wvc
 
 import time
 import sys
@@ -36,13 +36,21 @@ def do():
     start_http_server(prometheus_port)
 
     host = os.getenv("HOST")
+    host_grpc = os.getenv("HOST_GRPC")
     no_of_tenants = int(os.getenv("TENANTS") or 10)
 
     parallel_queries_per_tenant = int(os.getenv("PARALLEL_QUERIES_PER_TENANT") or 3)
     queries_per_tenant = int(os.getenv("QUERIES_PER_TENANT") or 1000)
     query_frequency_per_minute = int(os.getenv("QUERY_FREQUENCY_PER_MINUTE") or 30)
 
-    client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
+    client = weaviate.connect_to_custom(
+        http_host=host,
+        http_port=80,
+        http_secure=False,
+        grpc_host=host_grpc,
+        grpc_port=50051,
+        grpc_secure=False,
+    )
 
     all_tenants = build_tenant_list(client)
     tenants = pick_tenants(all_tenants, no_of_tenants)
@@ -58,7 +66,7 @@ def do():
     time.sleep(30)
 
 
-def query_in_parallel(client, tenants, total, qpm):
+def query_in_parallel(client: weaviate.WeaviateClient, tenants, total, qpm):
     threads = []
     for tenant in tenants:
         t = Thread(target=query, args=[client, tenant, total, qpm])
@@ -69,7 +77,10 @@ def query_in_parallel(client, tenants, total, qpm):
         t.join()
 
 
-def query(client, tenant, total, qpm):
+def query(client: weaviate.WeaviateClient, tenant, total, qpm):
+    col = client.collections.get("MultiTenancyTest").with_tenant(tenant)
+    if replication:
+        col = col.with_consistency_level(wvc.ConsistencyLevel.ONE)
     avg_wait = 60 / qpm
     querying_users.inc()
     for i in range(total):
@@ -79,25 +90,11 @@ def query(client, tenant, total, qpm):
         result = None
         fail = False
         try:
-            q = (
-                client.query.get("MultiTenancyTest", ["int1"])
-                .with_limit(10)
-                .with_tenant(tenant)
-                .with_additional("id")
-                .with_near_vector({"vector": np.random.rand(1, 32)})
-            )
+            res = col.query.near_vector(np.random.rand(1536, 1)[0].tolist(), limit=10)
 
-            if replication:
-                q = q.with_consistency_level(ConsistencyLevel.ONE)
-            result = q.do()
-            if "errors" in result:
-                logger.error(result["errors"])
+            if len(res.objects) != 10:
+                logger.error(f"Missing results. Requested 10, but got {res_len}")
                 fail = True
-            else:
-                res_len = len(result["data"]["Get"]["MultiTenancyTest"])
-                if res_len != 10:
-                    logger.error(f"Missing results. Requested 10, but got {res_len}")
-                    fail = True
         except Exception as e:
             logger.error(e)
             fail = True
@@ -114,17 +111,8 @@ def query(client, tenant, total, qpm):
     querying_users.dec()
 
 
-def build_tenant_list(client):
-    res = client.cluster.get_nodes_status()
-    tenants = []
-    for node in res:
-        for shard in node["shards"]:
-            if shard["objectCount"] < 100:
-                # tenant was just created, not enough objects to query yet,
-                # skip
-                continue
-
-            tenants.append(shard["name"])
+def build_tenant_list(client: weaviate.WeaviateClient):
+    tenants = list(client.collections.get("MultiTenancyTest").tenants.get().keys())
     return tenants
 
 

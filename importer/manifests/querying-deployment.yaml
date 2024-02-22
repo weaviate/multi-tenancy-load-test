@@ -24,9 +24,12 @@ spec:
         image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
         ports:
         - containerPort: 8000
+        imagePullPolicy: Always
         env:
           - name: "HOST"
             value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
+          - name: "HOST_GRPC"
+            value: "weaviate-grpc.$K8S_NAMESPACE.svc.cluster.local"
           - name: "TENANTS"
             value: "$QUERY_TENANTS_PER_POD"
           - name: "PARALLEL_QUERIES_PER_TENANT"

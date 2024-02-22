@@ -64,8 +64,8 @@ initContainers:
 replicas: override-me
 resources: 
   requests:
-    cpu: '6'
-    memory: '24Gi'
+    cpu: '3'
+    memory: '12Gi'
 
 
 # Add a service account ot the Weaviate pods if you need Weaviate to have permissions to
@@ -92,6 +92,24 @@ service:
       port: 80
       # Target port is going to be the same for every port
   type: LoadBalancer
+  loadBalancerSourceRanges: []
+  # optionally set cluster IP if you want to set a static IP
+  clusterIP:
+  annotations: {}
+
+# The service controls how weaviate gRPC endpoint is exposed to the outside world.
+# If you don't want a public load balancer, you can also choose 'ClusterIP' to make
+# weaviate gRPC port be only accessible within your cluster.
+grpcService:
+  # Set this to true in order to deploy Weaviate gRPC service
+  enabled: true
+  name: weaviate-grpc
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 50051
+      # Target port is going to be the same for every port
+  type: NodePort
   loadBalancerSourceRanges: []
   # optionally set cluster IP if you want to set a static IP
   clusterIP:

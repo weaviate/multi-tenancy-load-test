@@ -3,7 +3,7 @@
 set -exo pipefail
 
 cluster_name=mt-load-test
-machine_type=n2-standard-8
+machine_type=e2-standard-4
 initial_nodepool_size=12
 region="us-central1"
 zone="us-central1-c"

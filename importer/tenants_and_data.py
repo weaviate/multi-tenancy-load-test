@@ -1,4 +1,5 @@
 import weaviate
+import weaviate.classes as wvc
 import time
 import random
 import sys
@@ -13,7 +14,16 @@ from prometheus_client import start_http_server, Counter, Summary
 
 
 host = os.getenv("HOST")
-client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
+host_grpc = os.getenv("HOST_GRPC")
+
+client = weaviate.connect_to_custom(
+    http_host=host,
+    http_port=80,
+    http_secure=False,
+    grpc_host=host_grpc,
+    grpc_port=50051,
+    grpc_secure=False,
+)
 
 total_tenants = int(os.getenv("TOTAL_TENANTS"))
 tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
@@ -27,7 +37,7 @@ def random_name(length):
     return "".join(random.choice(letters) for i in range(length))
 
 
-def do(client: weaviate.Client):
+def do(client: weaviate.WeaviateClient):
     start_http_server(prometheus_port)
 
     tenants_added = Counter("tenants_added_total", "Number of tenants added.")
@@ -38,10 +48,11 @@ def do(client: weaviate.Client):
     tenants_batch = Summary("tenant_batch_seconds", "Duration it took to add tenants")
     objects_batch = Summary("objects_batch_seconds", "Duration it took to add objects")
     i = 0
+    col = client.collections.get("MultiTenancyTest")
     while i < total_tenants:
         # create next batch of tenants
         tenant_names = [f"{random_name(24)}" for j in range(tenants_per_cycle)]
-        new_tenants = [{"name": t} for t in tenant_names]
+        new_tenants = [wvc.tenants.Tenant(name=t) for t in tenant_names]
 
         implicit = random.random() <= implicit_ratio
 
@@ -51,17 +62,14 @@ def do(client: weaviate.Client):
         else:
             before = time.time()
             for attempt in range(100):
-                res = requests.post(
-                    f"http://{host}/v1/schema/MultiTenancyTest/tenants",
-                    json=new_tenants,
-                )
-                if res.status_code != 200:
-                    logger.error(res.json())
+                try:
+                    col.tenants.create(new_tenants)
+                    break
+                except Exception as e:
+                    logger.error(e)
                     sleep = random.randrange(0, 5000)
                     logger.info(f"sleep {sleep}ms, then retry {attempt}")
                     time.sleep(sleep / 1000)
-                else:
-                    break
             tenants_added.inc(tenants_per_cycle)
             took = time.time() - before
             tenants_batch.observe(took)
@@ -80,36 +88,13 @@ def do(client: weaviate.Client):
         i += tenants_per_cycle
 
 
-def handle_errors(results: Optional[dict]) -> None:
-    """
-    Handle error message from batch requests logs the message as an info message.
-    Parameters
-    ----------
-    results : Optional[dict]
-        The returned results for Batch creation.
-    """
-
-    if results is not None:
-        for result in results:
-            if (
-                "result" in result
-                and "errors" in result["result"]
-                and "error" in result["result"]["errors"]
-            ):
-                for message in result["result"]["errors"]["error"]:
-                    logger.error(message["message"])
-
-
-def load_records(client: weaviate.Client, tenant_names):
+def load_records(client: weaviate.WeaviateClient, tenant_names):
     for tenant in tenant_names:
-        client.batch.configure(
-            batch_size=1000,
-            callback=handle_errors,
-        )
-        with client.batch as batch:
+        with client.batch.fixed_size(100, 4) as batch:
             for i in range(objects_per_tenant):
-                batch.add_data_object(
-                    data_object={
+                batch.add_object(
+                    "MultiTenancyTest",
+                    {
                         "tenant_id": tenant,
                         "int1": random.randint(0, 10000),
                         "int2": random.randint(0, 10000),
@@ -128,9 +113,12 @@ def load_records(client: weaviate.Client, tenant_names):
                         # "text5": f"{random.randint(0, 10000)}",
                     },
                     tenant=tenant,
-                    vector=np.random.rand(32, 1),
-                    class_name="MultiTenancyTest",
+                    vector=np.random.rand(1536, 1)[0].tolist(),
                 )
+        errors = client.batch.failed_objects
+        if len(errors) > 0:
+            for error in errors:
+                logger.error(error)
         # logger.debug(f"Imported {objects_per_tenant} objs for tenant {tenant}")
 
 

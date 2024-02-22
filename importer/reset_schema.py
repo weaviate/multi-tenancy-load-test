@@ -1,4 +1,5 @@
 import weaviate
+import weaviate.classes as wvc
 import time
 import random
 import sys
@@ -9,51 +10,30 @@ from loguru import logger
 from typing import Optional
 
 host = os.getenv("HOST")
+host_grpc = os.getenv("HOST_GRPC")
 replication_factor = int(os.getenv("REPLICATION_FACTOR") or 1)
-client = weaviate.Client(f"http://{host}", timeout_config=(20, 240))
+
+client = weaviate.connect_to_custom(
+    http_host=host,
+    http_port=80,
+    http_secure=False,
+    grpc_host=host_grpc,
+    grpc_port=50051,
+    grpc_secure=False,
+)
 
 
-def reset_schema(client: weaviate.Client):
-    client.schema.delete_all()
-    class_payload = {
-        "class": "MultiTenancyTest",
-        "description": "A class to test multi-tenancy with many props",
-        "vectorizer": "none",
-        "replicationConfig": {
-            "factor": replication_factor,
-        },
-        "properties": [
-            {
-                "dataType": ["text"],
-                "tokenization": "field",
-                "name": "tenant_id",
-            },
-            {"dataType": ["int"], "name": "int1"},
-            {"dataType": ["int"], "name": "int2"},
-            # {"dataType": ["int"], "name": "int3"},
-            # {"dataType": ["int"], "name": "int4"},
-            # {"dataType": ["int"], "name": "int5"},
-            {"dataType": ["text"], "name": "text1"},
-            {"dataType": ["text"], "name": "text2"},
-            # {"dataType": ["text"], "name": "text3"},
-            # {"dataType": ["text"], "name": "text4"},
-            # {"dataType": ["text"], "name": "text5"},
-            {"dataType": ["number"], "name": "number1"},
-            {"dataType": ["number"], "name": "number2"},
-            # {"dataType": ["number"], "name": "number3"},
-            # {"dataType": ["number"], "name": "number4"},
-            # {"dataType": ["number"], "name": "number5"},
-        ],
-        "multiTenancyConfig": {
-            "enabled": True,
-            "autoTenantCreation": True,
-        },
-    }
-    res = requests.post(f"http://{host}/v1/schema", json=class_payload)
-    print(res.status_code)
-    if res.status_code > 299:
-        print(res.json())
-        sys.exit(1)
+def reset_schema(client: weaviate.WeaviateClient):
+    client.collections.delete_all()
+    client.collections.create(
+        "MultiTenancyTest",
+        vectorizer_config=None,
+        multi_tenancy_config=wvc.config.Configure.multi_tenancy(enabled=True),
+        replication_config=wvc.config.Configure.replication(factor=replication_factor),
+        vector_index_config=wvc.config.Configure.VectorIndex.flat(
+            quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq()
+        ),
+    )
 
 
 reset_schema(client)

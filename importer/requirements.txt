@@ -1,4 +1,5 @@
 loguru==0.5.3
 numpy==1.26.0
 prometheus-client>=0.17.0
+weaviate-client==4.4.4
 
