@@ -10,71 +10,10 @@ import k8s
 from rich.console import Console
 from rich.markdown import Markdown
 import sys
-
-# TODO: config management:
-
-
-def get_git_short_hash():
-    try:
-        # Run the git command to get the short hash of the current commit
-        short_hash = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.STDOUT
-            )
-            .decode()
-            .strip()
-        )
-        return short_hash
-    except subprocess.CalledProcessError as e:
-        # Handle errors from the subprocess, such as if the directory is not a Git repository
-        raise RuntimeError(
-            "Error: This script is not running in a Git repository or there was an issue with Git command execution."
-        ) from e
-    except FileNotFoundError:
-        # Handle errors if git is not installed
-        raise RuntimeError(
-            "Error: Git is not installed or not found in the PATH."
-        ) from None
-    except Exception as e:
-        # Handle unexpected errors
-        raise RuntimeError(f"Unexpected error: {str(e)}") from e
+from cli_config import init_config
 
 
-class Config:
-    # set by the user
-    zone: str
-    namespace: str
-    project: str
-    cluster_name: str
-
-    # will be determined as part of the run
-    weaviate_hostname: str
-    grafana_hostname: str
-    grafana_password: str
-    git_hash: str
-
-
-cfg = Config()
-cfg.namespace = "weaviate"
-cfg.project = "semi-automated-benchmarking"
-cfg.region = "us-central1"
-cfg.zone = "us-central1-c"
-cfg.cluster_name = "mt-load-test"
-cfg.path_to_secret_file = (
-    "/Users/etiennedilocker/Downloads/semi-automated-benchmarking-d48b1be49cd1.json"
-)
-cfg.git_hash = get_git_short_hash()
-
-
-env = os.environ.copy()
-
-env["TF_VAR_cluster_name"] = cfg.cluster_name
-env["TF_VAR_project"] = cfg.project
-env["TF_VAR_region"] = cfg.region
-env["TF_VAR_zone"] = cfg.zone
-env["K8S_NAMESPACE"] = cfg.namespace
-env["GIT_HASH"] = cfg.git_hash
-
+cfg, env = None, None
 console = Console()
 
 
@@ -166,7 +105,7 @@ def push_images():
     console.print(
         Markdown("## Build and push docker images for importing and querying")
     )
-    subprocess.run(["importer/build_and_push.sh"], shell=True)
+    subprocess.run(["importer/build_and_push.sh"], shell=True, env=env)
 
 
 def reset_schema():
@@ -207,43 +146,75 @@ def run_all_steps():
 
 
 @click.command()
-@click.option("--interactive", is_flag=True, help="Run in interactive mode.")
-def main(interactive):
-    # Load k8s config
+@click.option("--zone", default="us-central1-c", help="Deployment zone.")
+@click.option("--region", default="us-central1", help="Deployment region.")
+@click.option("--namespace", default="weaviate", help="Kubernetes namespace.")
+@click.option("--project", default="semi-automated-benchmarking", help="GCP project.")
+@click.option(
+    "--cluster-name", default="mt-load-test", help="Name of the Kubernetes cluster."
+)
+@click.option(
+    "--path-to-secret-file",
+    default="/Users/etiennedilocker/Downloads/semi-automated-benchmarking-d48b1be49cd1.json",
+    help="Path to the GCP secret file that's used for backups.",
+)  # TODO!
+@click.option("--step", default="", help="Execute a specific step")
+def main(zone, region, namespace, project, cluster_name, path_to_secret_file, step):
+    global cfg
+    global env
+
+    cfg, env = init_config(
+        zone,
+        region,
+        namespace,
+        project,
+        cluster_name,
+        path_to_secret_file,
+    )
     config.load_kube_config()
 
-    if interactive:
+    if step == "":
         console.print(Markdown("# Multi-Tenancy Load Test - INTERACTIVE MODE"))
-        run_all = questionary.confirm("Would you like to run all steps?").ask()
-        if run_all:
-            run_all_steps()
+        actions = {
+            "Create cluster": create_cluster,
+            "Deploy Weaviate": deploy_weaviate,
+            "Deploy observability": deploy_observability,
+            "Wait for Weaviate to be ready": wait_weaviate_ready,
+            "Push images": push_images,
+            "Reset schema": reset_schema,
+            "Import data": import_data,
+        }
+
+        choices = [{"name": action} for action in actions]
+
+        selected_steps = questionary.checkbox(
+            "Select steps to execute (space to select, enter to confirm):",
+            choices=choices,
+        ).ask()
+
+        # Execute selected steps
+        if selected_steps:
+            for step in selected_steps:
+                actions[step]()
         else:
-            actions = {
-                "Create cluster": create_cluster,
-                "Deploy Weaviate": deploy_weaviate,
-                "Deploy observability": deploy_observability,
-                "Wait for Weaviate to be ready": wait_weaviate_ready,
-                "Push images": push_images,
-                "Reset schema": reset_schema,
-                "Import data": import_data,
-            }
-
-            choices = [{"name": action} for action in actions]
-
-            selected_steps = questionary.checkbox(
-                "Select steps to execute (space to select, enter to confirm):",
-                choices=choices,
-            ).ask()
-
-            # Execute selected steps
-            if selected_steps:
-                for step in selected_steps:
-                    actions[step]()
-            else:
-                print("No steps selected. Exiting.")
+            print("No steps selected. Exiting.")
     else:
         console.print(Markdown("# Multi-Tenancy Load Test"))
-        run_all_steps()
+        actions = {
+            "create_cluster": create_cluster,
+            "deploy_weaviate": deploy_weaviate,
+            "deploy_observability": deploy_observability,
+            "wait_weaviate_ready": wait_weaviate_ready,
+            "push_images": push_images,
+            "reset_schema": reset_schema,
+            "import_data": import_data,
+        }
+
+        if step not in actions:
+            print("Invalid step. Exiting.")
+            sys.exit(1)
+
+        actions[step]()
 
 
 if __name__ == "__main__":

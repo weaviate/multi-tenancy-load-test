@@ -1,10 +1,10 @@
 import subprocess
 import os
+import click
 
 
 def get_git_short_hash():
     try:
-        # Run the git command to get the short hash of the current commit
         short_hash = (
             subprocess.check_output(
                 ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.STDOUT
@@ -14,17 +14,14 @@ def get_git_short_hash():
         )
         return short_hash
     except subprocess.CalledProcessError as e:
-        # Handle errors from the subprocess, such as if the directory is not a Git repository
         raise RuntimeError(
             "Error: This script is not running in a Git repository or there was an issue with Git command execution."
         ) from e
     except FileNotFoundError:
-        # Handle errors if git is not installed
         raise RuntimeError(
             "Error: Git is not installed or not found in the PATH."
         ) from None
     except Exception as e:
-        # Handle unexpected errors
         raise RuntimeError(f"Unexpected error: {str(e)}") from e
 
 
@@ -42,16 +39,16 @@ class Config:
     git_hash: str
 
 
-def init_config() -> (Config, dict):
+def init_config(
+    zone, region, namespace, project, cluster_name, path_to_secret_file
+) -> (Config, dict):
     cfg = Config()
-    cfg.namespace = "weaviate"
-    cfg.project = "semi-automated-benchmarking"
-    cfg.region = "us-central1"
-    cfg.zone = "us-central1-c"
-    cfg.cluster_name = "mt-load-test"
-    cfg.path_to_secret_file = (
-        "/Users/etiennedilocker/Downloads/semi-automated-benchmarking-d48b1be49cd1.json"
-    )
+    cfg.namespace = namespace
+    cfg.project = project
+    cfg.region = region
+    cfg.zone = zone
+    cfg.cluster_name = cluster_name
+    cfg.path_to_secret_file = path_to_secret_file
     cfg.git_hash = get_git_short_hash()
 
     env = os.environ.copy()
