@@ -25,7 +25,7 @@ spec:
 
       containers:
       - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
-        name: schema-resetter
+        name: importer
         command: ["python3", "tenants_and_data.py"]
         imagePullPolicy: Always
         env:
