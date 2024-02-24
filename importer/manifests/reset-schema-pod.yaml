@@ -17,3 +17,12 @@ spec:
     - name: "REPLICATION_FACTOR"
       value: "$REPLICATION_FACTOR"
   restartPolicy: Never
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: cloud.google.com/gke-nodepool
+            operator: In
+            values:
+            - client-pool 

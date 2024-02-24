@@ -13,6 +13,16 @@ spec:
         prometheus.io/path: /
         prometheus.io/port: "8000"
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values:
+                - client-pool 
+
       containers:
       - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
         name: schema-resetter
