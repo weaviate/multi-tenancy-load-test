@@ -90,7 +90,7 @@ def query(client: weaviate.WeaviateClient, tenant, total, qpm):
         result = None
         fail = False
         try:
-            res = col.query.near_vector(np.random.rand(1536, 1)[0].tolist(), limit=10)
+            res = col.query.near_vector(np.random.rand(1, 1536)[0].tolist(), limit=10)
 
             if len(res.objects) != 10:
                 logger.error(f"Missing results. Requested 10, but got {res_len}")

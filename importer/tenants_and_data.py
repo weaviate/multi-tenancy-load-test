@@ -113,7 +113,7 @@ def load_records(client: weaviate.WeaviateClient, tenant_names):
                         # "text5": f"{random.randint(0, 10000)}",
                     },
                     tenant=tenant,
-                    vector=np.random.rand(1536, 1)[0].tolist(),
+                    vector=np.random.rand(1, 1536)[0].tolist(),
                 )
         errors = client.batch.failed_objects
         if len(errors) > 0:
