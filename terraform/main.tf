@@ -11,7 +11,7 @@ variable "cluster_name" {
   default = "mt-load-test"
 }
 
-variable "location" {
+variable "zone" {
   default = "us-central1-c"
 }
 
@@ -29,7 +29,7 @@ variable "server_node_pool_size" {
 
 resource "google_container_cluster" "my_cluster" {
   name               = var.cluster_name
-  location           = var.location
+  location           = var.zone
 
   network    = "default"
   subnetwork = "default"
