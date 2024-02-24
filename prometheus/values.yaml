@@ -359,7 +359,15 @@ prometheus:
 
     ## Pod affinity
     ##
-    affinity: {}
+    affinity: 
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: cloud.google.com/gke-nodepool
+              operator: In
+              values:
+              - client-pool 
 
     ## Pod topology spread constraints
     ## ref. https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
@@ -1463,7 +1471,15 @@ grafana:
   ## Affinity for pod assignment (evaluated as template)
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   ##
-  affinity: {}
+  affinity: 
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: cloud.google.com/gke-nodepool
+            operator: In
+            values:
+            - client-pool 
 
   ## Topology Spread Constraints
   ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
