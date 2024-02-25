@@ -195,7 +195,8 @@ def wait_for_import():
         try:
             res = wclient.cluster.nodes(output="verbose")
             object_count = sum([node.stats.object_count for node in res])
-            print(f"current object count: {object_count}")
+            shard_count = sum([len(node.shards) for node in res])
+            print(f"shards={shard_count} obects={object_count}")
         except Exception as e:
             print(f"could not get object count: {e}")
 
@@ -211,14 +212,34 @@ def wait_for_import():
     check_progress_fn(0, 0, 0)
 
 
-def run_all_steps():
-    create_cluster()
-    deploy_weaviate()
-    deploy_observability()
-    wait_weaviate_ready()
-    push_images()
-    reset_schema()
-    import_data()
+def query():
+    console.print(Markdown("## Query"))
+
+    query_pods = cfg.query_min_pods
+    yaml_file_path = "importer/manifests/querying-deployment.yaml"
+    env["QUERY_REPLICAS"] = str(query_pods)
+    try:
+        k8s.apply_yaml(yaml_file_path, cfg.namespace, env)
+    except:
+        # accept silent failure in case it exists already.
+        pass
+    print(f"YAML from '{yaml_file_path}' applied.")
+    while query_pods <= cfg.query_max_pods:
+        tenants = cfg.query_tenants_per_pod * query_pods
+        users = cfg.query_users_per_tenant * tenants
+        console.print(
+            Markdown(f"### pods={query_pods} tenants={tenants} users={users}")
+        )
+        k8s.scale_deployment("query-deployment", cfg.namespace, query_pods)
+
+        time.sleep(60)
+        console.print("qps=???", style="bold")
+
+        query_pods += 10
+
+    # shut down querying
+    query_pods = 0
+    k8s.scale_deployment("query-deployment", cfg.namespace, query_pods)
 
 
 @click.command()
@@ -260,6 +281,7 @@ def main(zone, region, namespace, project, cluster_name, step):
             "Reset schema": reset_schema,
             "Import data": import_data,
             "Wait for import to finish": wait_for_import,
+            "Query": query,
             "Destroy Cluster": destroy_cluster,
         }
 
@@ -287,6 +309,7 @@ def main(zone, region, namespace, project, cluster_name, step):
             "reset_schema": reset_schema,
             "import_data": import_data,
             "wait_for_import": wait_for_import,
+            "query": query,
             "destroy_cluster": destroy_cluster,
         }
 

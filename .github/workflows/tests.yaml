@@ -71,6 +71,9 @@ jobs:
     - name: Wait for import
       run: python3 run.py --step=wait_for_import
 
+    - name: Query
+      run: python3 run.py --step=query
+
     - name: Destroy Cluster
       if: always()  # This ensures that this step runs regardless of previous step results
       run: python3 run.py --step=destroy_cluster

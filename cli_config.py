@@ -45,6 +45,14 @@ class Config:
     parallel_importers: int
     importer_completions: int
 
+    # querying
+    query_tenants_per_pod: int
+    query_users_per_tenant: int
+    query_total_per_tenant: int
+    query_frequency_per_minute: int
+    query_min_pods: int
+    query_max_pods: int
+
     # will be determined as part of the run
     weaviate_hostname: str = None
     weaviate_grpc_hostname: str = None
@@ -105,6 +113,13 @@ def init_config(
     cfg.parallel_importers = 12
     cfg.importer_completions = 12
 
+    cfg.query_tenants_per_pod = 10
+    cfg.query_users_per_tenant = 5
+    cfg.query_total_per_tenant = 1000000
+    cfg.query_frequency_per_minute = 480
+    cfg.query_min_pods = 10
+    cfg.query_max_pods = 60
+
     # duplicate some config vars into the environment. This env is passed to
     # relevant commands that anticipate env substitution, such as yaml
     # manifests or terraform commands
@@ -123,5 +138,9 @@ def init_config(
     env["PARALLEL_IMPORTERS"] = str(cfg.parallel_importers)
     env["IMPORTER_COMPLETIONS"] = str(cfg.importer_completions)
     env["VECTOR_DIMENSIONS"] = str(cfg.vector_dimensions)
+    env["QUERY_FREQUENCY_PER_MINUTE"] = str(cfg.query_frequency_per_minute)
+    env["QUERY_TOTAL_PER_TENANT"] = str(cfg.query_total_per_tenant)
+    env["QUERY_TENANTS_PER_POD"] = str(cfg.query_tenants_per_pod)
+    env["QUERY_USERS_PER_TENANT"] = str(cfg.query_users_per_tenant)
 
     return cfg, env

@@ -5,7 +5,7 @@ metadata:
   labels:
     app: query
 spec:
-  replicas: $QUERY_REPLICAS
+  replicas: ${QUERY_REPLICAS}
   selector:
     matchLabels:
       app: query
@@ -21,23 +21,23 @@ spec:
       containers:
       - name: query
         command: ["python3", "querying.py"]
-        image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
+        image: "gcr.io/semi-automated-benchmarking/load-test-importer:${GIT_HASH}"
         ports:
         - containerPort: 8000
         imagePullPolicy: Always
         env:
           - name: "HOST"
-            value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
+            value: "weaviate.${K8S_NAMESPACE}.svc.cluster.local"
           - name: "HOST_GRPC"
-            value: "weaviate-grpc.$K8S_NAMESPACE.svc.cluster.local"
+            value: "weaviate-grpc.${K8S_NAMESPACE}.svc.cluster.local"
           - name: "TENANTS"
-            value: "$QUERY_TENANTS_PER_POD"
+            value: "${QUERY_TENANTS_PER_POD}"
           - name: "PARALLEL_QUERIES_PER_TENANT"
-            value: "$QUERY_USERS_PER_TENANT"
+            value: "${QUERY_USERS_PER_TENANT}"
           - name: "QUERIES_PER_TENANT"
-            value: "$QUERY_TOTAL_PER_TENANT"
+            value: "${QUERY_TOTAL_PER_TENANT}"
           - name: "QUERY_FREQUENCY_PER_MINUTE"
-            value: "$QUERY_FREQUENCY_PER_MINUTE"
+            value: "${QUERY_FREQUENCY_PER_MINUTE}"
           - name: "REPLICATION"
             value: "false"
           - name: "VECTOR_DIMENSIONS"

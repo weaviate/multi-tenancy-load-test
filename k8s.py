@@ -252,3 +252,40 @@ def apply_yaml(yaml_file_path: str, namespace: str, env: dict):
     )
     yaml_object = yaml.safe_load(yaml_content_with_variables_replaced)
     utils.create_from_dict(client.ApiClient(), yaml_object, namespace=namespace)
+
+
+from typing import Any
+from kubernetes import client, config
+
+
+def scale_deployment(deployment_name: str, namespace: str, num_replicas: int) -> Any:
+    """
+    Scale a Kubernetes deployment to the specified number of replicas.
+
+    Parameters:
+    - deployment_name (str): The name of the deployment to scale.
+    - namespace (str): The namespace where the deployment is located.
+    - num_replicas (int): The desired number of replicas.
+
+    Returns:
+    - Any: The API response from Kubernetes. Typically, this is a V1DeploymentScale object.
+
+    This function requires the Kubernetes cluster to be accessible and
+    the current context set to the appropriate cluster if using outside
+    of a cluster environment.
+    """
+
+    api_instance = client.AppsV1Api()
+    body = {"spec": {"replicas": num_replicas}}
+
+    try:
+        api_response = api_instance.patch_namespaced_deployment_scale(
+            name=deployment_name, namespace=namespace, body=body
+        )
+        print(f"Deployment {deployment_name} scaled to {num_replicas} replicas.")
+        return api_response
+    except client.ApiException as e:
+        print(
+            f"Exception when calling AppsV1Api->patch_namespaced_deployment_scale: {e}"
+        )
+        return None
