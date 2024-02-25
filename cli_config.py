@@ -122,5 +122,6 @@ def init_config(
     env["OBJECTS_PER_TENANT"] = str(cfg.objects_per_tenant)
     env["PARALLEL_IMPORTERS"] = str(cfg.parallel_importers)
     env["IMPORTER_COMPLETIONS"] = str(cfg.importer_completions)
+    env["VECTOR_DIMENSIONS"] = str(cfg.vector_dimensions)
 
     return cfg, env

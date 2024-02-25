@@ -23,18 +23,24 @@ console = Console()
 
 def create_cluster():
     console.print(Markdown(f"## Create GKE cluster ({cfg.cluster_name})"))
-    subprocess.run(["terraform", "init"], cwd="terraform", env=env)
-    subprocess.run(["terraform", "apply", "--auto-approve"], cwd="terraform", env=env)
+    subprocess.run(["terraform", "init"], cwd="terraform", env=env, check=True)
+    subprocess.run(
+        ["terraform", "apply", "--auto-approve"], cwd="terraform", env=env, check=True
+    )
     setup_kubernetes_cluster(cfg.cluster_name, cfg.zone, cfg.project, cfg.namespace)
 
 
 def destroy_cluster():
     console.print(Markdown(f"## Destroy GKE cluster ({cfg.cluster_name})"))
-    subprocess.run(["terraform", "destroy", "--auto-approve"], cwd="terraform", env=env)
+    subprocess.run(
+        ["terraform", "destroy", "--auto-approve"], cwd="terraform", env=env, check=True
+    )
 
 
 def run_command(command):
-    output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+    output = subprocess.check_output(
+        command, shell=True, stderr=subprocess.STDOUT, check=True
+    )
     print("Command output:", output.decode())
 
 
@@ -59,12 +65,12 @@ def setup_kubernetes_cluster(cluster_name, zone, project, k8s_namespace):
 
 def deploy_weaviate():
     console.print(Markdown("## Deploy Weaviate onto cluster"))
-    subprocess.run(["weaviate/deploy.sh"], shell=True, env=env)
+    subprocess.run(["weaviate/deploy.sh"], shell=True, env=env, check=True)
 
 
 def deploy_observability():
     console.print(Markdown("## Deploy Observability Stack"))
-    subprocess.run(["prometheus/deploy.sh"], shell=True, env=env)
+    subprocess.run(["prometheus/deploy.sh"], shell=True, env=env, check=True)
     cfg.grafana_hostname, cfg.grafana_password = grafana_credentials()
 
 
@@ -89,6 +95,7 @@ def grafana_credentials() -> (str, str):
         ],
         capture_output=True,
         text=True,
+        check=True,
     )
     password = base64.b64decode(password_b64.stdout).decode("utf-8")
 
@@ -135,8 +142,8 @@ def push_images():
     console.print(
         Markdown("## Build and push docker images for importing and querying")
     )
-    subprocess.run(["gcloud auth configure-docker"], shell=True, env=env)
-    subprocess.run(["importer/build_and_push.sh"], shell=True, env=env)
+    subprocess.run(["gcloud auth configure-docker"], shell=True, env=env, check=True)
+    subprocess.run(["importer/build_and_push.sh"], shell=True, env=env, check=True)
 
 
 def reset_schema():

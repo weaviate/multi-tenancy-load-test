@@ -1,5 +1,9 @@
 name: Multi-Tenancy Load-Test 
 
+env:
+  PYTHONUNBUFFERED: 1
+
+
 on:
   push:
     # branches:
