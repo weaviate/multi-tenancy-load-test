@@ -188,7 +188,7 @@ def wait_for_statefulset_pods_ready_with_display(
         time.sleep(check_interval)
 
 
-def get_external_ip(app_name: str):
+def get_external_ip_by_app_name(app_name: str):
     v1 = client.CoreV1Api()
     services = v1.list_service_for_all_namespaces(
         label_selector=f"app.kubernetes.io/name={app_name}"
@@ -203,6 +203,26 @@ def get_external_ip(app_name: str):
             return external_ip
 
     # If no service is found or if no external IP is available, return None or handle as needed.
+    return None
+
+
+def get_external_ip(svc_name: str):
+    v1 = client.CoreV1Api()
+    # List all services in all namespaces without using a label selector
+    services = v1.list_service_for_all_namespaces()
+
+    for svc in services.items:
+        # Check if the service name matches the requested service name
+        if svc.metadata.name == svc_name:
+            # Check if the service has an external IP address
+            if (
+                svc.status.load_balancer.ingress
+                and len(svc.status.load_balancer.ingress) > 0
+            ):
+                external_ip = svc.status.load_balancer.ingress[0].ip
+                return external_ip
+
+    # If no matching service is found or if no external IP is available, return None or handle as needed.
     return None
 
 

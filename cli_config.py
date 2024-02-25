@@ -29,13 +29,25 @@ def get_git_short_hash():
 
 class Config:
     # set by the user
+
+    # infra
     zone: str
     namespace: str
     project: str
     cluster_name: str
+    weaviate_version: str
+    weaviate_pods: int
+
+    # importing
+    replication_factor: int
+    tenants_per_job: int
+    objects_per_tenant: int
+    parallel_importers: int
+    importer_completions: int
 
     # will be determined as part of the run
-    weaviate_hostname: str
+    weaviate_hostname: str = None
+    weaviate_grpc_hostname: str = None
     grafana_hostname: str
     grafana_password: str
     git_hash: str
@@ -82,12 +94,32 @@ def init_config(
     else:
         cfg.cluster_name = cluster_name
 
-    env = os.environ.copy()
+    # todo: make configurable
+    cfg.weaviate_pods = 12
+    cfg.weaviate_version = "1.23.10"
 
+    cfg.replication_factor = 1
+    cfg.tenants_per_job = 1000
+    cfg.objects_per_tenant = 1536
+    cfg.parallel_importers = 12
+    cfg.importer_completions = 12
+
+    # duplicate some config vars into the environment. This env is passed to
+    # relevant commands that anticipate env substitution, such as yaml
+    # manifests or terraform commands
+    env = os.environ.copy()
     env["TF_VAR_cluster_name"] = cfg.cluster_name
     env["TF_VAR_project"] = cfg.project
     env["TF_VAR_region"] = cfg.region
     env["TF_VAR_zone"] = cfg.zone
     env["K8S_NAMESPACE"] = cfg.namespace
     env["GIT_HASH"] = cfg.git_hash
+    env["WEAVIATE_VERSION"] = cfg.weaviate_version
+    env["WEAVIATE_PODS"] = str(cfg.weaviate_pods)
+    env["REPLICATION_FACTOR"] = str(cfg.replication_factor)
+    env["TENANTS_PER_JOB"] = str(cfg.tenants_per_job)
+    env["OBJECTS_PER_TENANT"] = str(cfg.objects_per_tenant)
+    env["PARALLEL_IMPORTERS"] = str(cfg.parallel_importers)
+    env["IMPORTER_COMPLETIONS"] = str(cfg.importer_completions)
+
     return cfg, env

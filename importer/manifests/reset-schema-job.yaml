@@ -1,17 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: importer
-  namespace: "${K8S_NAMESPACE}"
+  name: schema-resetter
 spec:
-  parallelism: ${PARALLEL_IMPORTERS}
-  completions: ${IMPORTER_COMPLETIONS}
+  parallelism: 1
+  completions: 1
   template:
-    metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: /
-        prometheus.io/port: "8000"
     spec:
       affinity:
         nodeAffinity:
@@ -25,21 +19,15 @@ spec:
 
       containers:
       - image: "gcr.io/semi-automated-benchmarking/load-test-importer:${GIT_HASH}"
-        name: importer
-        command: ["python3", "tenants_and_data.py"]
+        name: schema-resetter
+        command: ["python3", "reset_schema.py"]
         imagePullPolicy: Always
         env:
         - name: "HOST"
           value: "weaviate.${K8S_NAMESPACE}.svc.cluster.local"
         - name: "HOST_GRPC"
           value: "weaviate-grpc.${K8S_NAMESPACE}.svc.cluster.local"
-        - name: "TOTAL_TENANTS"
-          value: "${TENANTS_PER_JOB}"
-        - name: "TENANTS_PER_CYCLE"
-          value: "50"
-        - name: "OBJECTS_PER_TENANT"
-          value: "${OBJECTS_PER_TENANT}"
-        - name: "IMPLICIT_TENANT_RATIO"
-          value: "0" # TODO
+        - name: "REPLICATION_FACTOR"
+          value: "${REPLICATION_FACTOR}"
       restartPolicy: Never
   backoffLimit: 4

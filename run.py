@@ -11,6 +11,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 import sys
 from cli_config import init_config
+import weaviate_interaction
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 
 cfg, env = None, None
@@ -55,21 +59,24 @@ def setup_kubernetes_cluster(cluster_name, zone, project, k8s_namespace):
 
 def deploy_weaviate():
     console.print(Markdown("## Deploy Weaviate onto cluster"))
-    subprocess.run(["weaviate/deploy.sh"], shell=True)
+    subprocess.run(["weaviate/deploy.sh"], shell=True, env=env)
 
 
 def deploy_observability():
     console.print(Markdown("## Deploy Observability Stack"))
-    subprocess.run(["prometheus/deploy.sh"], shell=True)
+    subprocess.run(["prometheus/deploy.sh"], shell=True, env=env)
     cfg.grafana_hostname, cfg.grafana_password = grafana_credentials()
 
 
-def grafana_credentials():
-    external_ip = k8s.get_external_ip("grafana")
+def grafana_credentials() -> (str, str):
+    external_ip = k8s.get_external_ip_by_app_name("grafana")
     while external_ip == "pending" or not external_ip:
-        print("External IP is still pending. Retrying in 5 seconds...", file=sys.stderr)
+        print(
+            "External IP (grafana) is still pending. Retrying in 5 seconds...",
+            file=sys.stderr,
+        )
         time.sleep(5)
-        external_ip = get_external_ip()
+        external_ip = k8s.get_external_ip_by_app_name("grafana")
 
     password_b64 = subprocess.run(
         [
@@ -99,15 +106,29 @@ def wait_weaviate_ready():
     k8s.wait_for_statefulset_pods_ready_with_display(
         "weaviate", "weaviate", 10, 15 * 60
     )
-    cfg.weaviate_hostname = weaviate_hostname()
+    cfg.weaviate_hostname, cfg.weaviate_grpc_hostname = weaviate_hostname()
 
 
-def weaviate_hostname() -> str:
-    external_ip = k8s.get_external_ip("grafana")
-    while external_ip == "pending" or not external_ip:
-        print("External IP is still pending. Retrying in 5 seconds...", file=sys.stderr)
+def weaviate_hostname() -> (str, str):
+    http_host = k8s.get_external_ip("weaviate")
+    while http_host == "pending" or not http_host:
+        print(
+            "External IP (http) is still pending. Retrying in 5 seconds...",
+            file=sys.stderr,
+        )
         time.sleep(5)
-        external_ip = get_external_ip()
+        http_host = k8s.get_external_ip("weaviate")
+
+    grpc_host = k8s.get_external_ip("weaviate-grpc")
+    while grpc_host == "pending" or not grpc_host:
+        print(
+            "External IP (grpc) is still pending. Retrying in 5 seconds...",
+            file=sys.stderr,
+        )
+        time.sleep(5)
+        grpc_host = k8s.get_external_ip("weaviate-grpc")
+
+    return http_host, grpc_host
 
 
 def push_images():
@@ -138,10 +159,41 @@ def reset_schema():
 
 
 def import_data():
-    console.print(Markdown("## Import Data"))
+    console.print(Markdown("## Start Import Data"))
+    yaml_file_path = "importer/manifests/import-job.yaml"
+    k8s.apply_yaml(yaml_file_path, cfg.namespace, env)
+    print(f"YAML from '{yaml_file_path}' applied.")
+
+
+def wait_for_import():
+    if not cfg.weaviate_hostname:
+        print("no weaviate hostname found, run wait_weaviate_ready step first")
+        wait_weaviate_ready()
+
+    console.print(Markdown("## Wait for import to finish"))
     console.print(Markdown("### Warning: This will likely take a long time!"))
-    subprocess.run(["importer/import.sh"], shell=True)
-    k8s.wait_for_job_completion("importer", "weaviate", 60, max_wait_time=3 * 60 * 60)
+    wclient = weaviate_interaction.client(
+        cfg.weaviate_hostname, cfg.weaviate_grpc_hostname
+    )
+
+    def check_progress_fn(current: int, desired: int, elapsed_time: float):
+        try:
+            res = wclient.cluster.nodes(output="verbose")
+            object_count = sum([node.stats.object_count for node in res])
+            print(f"current object count: {object_count}")
+        except Exception as e:
+            print(f"could not get object count: {e}")
+
+    k8s.wait_for_job_completion(
+        "importer",
+        "weaviate",
+        60,
+        callback=check_progress_fn,
+        max_wait_time=3 * 60 * 60,
+    )
+
+    # print progress one more time
+    check_progress_fn(0, 0, 0)
 
 
 def run_all_steps():
@@ -192,6 +244,7 @@ def main(zone, region, namespace, project, cluster_name, step):
             "Push images": push_images,
             "Reset schema": reset_schema,
             "Import data": import_data,
+            "Wait for import to finish": wait_for_import,
             "Destroy Cluster": destroy_cluster,
         }
 
@@ -218,6 +271,7 @@ def main(zone, region, namespace, project, cluster_name, step):
             "push_images": push_images,
             "reset_schema": reset_schema,
             "import_data": import_data,
+            "wait_for_import": wait_for_import,
             "destroy_cluster": destroy_cluster,
         }
 

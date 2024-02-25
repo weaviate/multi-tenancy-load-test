@@ -50,14 +50,17 @@ jobs:
     - name: Wait for Weaviate to be ready
       run: python3 run.py --step=wait_weaviate_ready
 
-    # - name: Push Images
-    #   run: python3 run.py --step=push_images
+    - name: Push Images
+      run: python3 run.py --step=push_images
 
-    # - name: Reset Schema
-    #   run: python3 run.py --step=reset_schema
+    - name: Reset Schema
+      run: python3 run.py --step=reset_schema
 
-    # - name: Import Data
-    #   run: python3 run.py --step=import_data
+    - name: Import Data
+      run: python3 run.py --step=import_data
+
+    - name: Wait for import
+      run: python3 run.py --step=wait_for_import
 
     - name: Destroy Cluster
       if: always()  # This ensures that this step runs regardless of previous step results
