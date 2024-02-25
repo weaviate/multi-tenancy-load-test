@@ -31,7 +31,7 @@ jobs:
       run: gcloud components install kubectl --quiet
 
     - name: Install Helm
-      uses: azure/setup-helm@v4
+      uses: azure/setup-helm@v3
       with:
          version: '3.8.2'
 
