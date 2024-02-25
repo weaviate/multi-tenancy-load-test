@@ -39,6 +39,8 @@ spec:
           value: "50"
         - name: "OBJECTS_PER_TENANT"
           value: "${OBJECTS_PER_TENANT}"
+        - name: "VECTOR_DIMENSIONS"
+          value: "${VECTOR_DIMENSIONS}"
         - name: "IMPLICIT_TENANT_RATIO"
           value: "0" # TODO
       restartPolicy: Never

@@ -40,3 +40,5 @@ spec:
             value: "$QUERY_FREQUENCY_PER_MINUTE"
           - name: "REPLICATION"
             value: "false"
+          - name: "VECTOR_DIMENSIONS"
+            value: "${VECTOR_DIMENSIONS}"
