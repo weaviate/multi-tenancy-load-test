@@ -6,7 +6,7 @@ on:
     #   - main  # Or any branch you want to trigger this workflow
 
 jobs:
-  deploy:
+  mt-load-test:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -18,10 +18,10 @@ jobs:
         python-version: '3.x'
 
     - name: Install gcloud CLI
-      uses: google-github-actions/setup-gcloud@master
+      uses: google-github-actions/setup-gcloud@v2
       with:
         version: 'latest'
-        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        credentials_json: "${{ secrets.GCP_SERVICE_ACCOUNT }}"
 
     - name: Install kubectl
       run: gcloud components install kubectl --quiet
