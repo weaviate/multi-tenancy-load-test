@@ -1,6 +1,8 @@
 import subprocess
 import os
 import click
+import random
+import string
 
 
 def get_git_short_hash():
@@ -39,6 +41,26 @@ class Config:
     git_hash: str
 
 
+def get_cluster_name():
+    # Check if .clustername exists in the current directory
+    if os.path.exists(".clustername"):
+        # Read the cluster name from the file
+        with open(".clustername", "r") as file:
+            cluster_name = file.read().strip()
+    else:
+        # Generate a new cluster name with 8 random letters or numbers
+        random_string = "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=8)
+        )
+        cluster_name = f"mt-load-test-{random_string}"
+
+        # Write the new cluster name to the file
+        with open(".clustername", "w") as file:
+            file.write(cluster_name)
+
+    return cluster_name
+
+
 def init_config(
     zone, region, namespace, project, cluster_name, path_to_secret_file
 ) -> (Config, dict):
@@ -47,9 +69,14 @@ def init_config(
     cfg.project = project
     cfg.region = region
     cfg.zone = zone
-    cfg.cluster_name = cluster_name
     cfg.path_to_secret_file = path_to_secret_file
     cfg.git_hash = get_git_short_hash()
+    if cluster_name == "":
+        # the user didn't specify one, let's use our custom logic:
+        cfg.cluster_name = get_cluster_name()
+        print(f"created a new cluster name: {cfg.cluster_name}")
+    else:
+        cfg.cluster_name = cluster_name
 
     env = os.environ.copy()
 
