@@ -17,11 +17,15 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Add gcloud auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
     - name: Install gcloud CLI
       uses: google-github-actions/setup-gcloud@v2
       with:
         version: 'latest'
-        credentials_json: "${{ secrets.GCP_SERVICE_ACCOUNT }}"
 
     - name: Install kubectl
       run: gcloud components install kubectl --quiet
