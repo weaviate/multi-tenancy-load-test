@@ -37,12 +37,6 @@ resource "google_container_node_pool" "client_pool" {
       "https://www.googleapis.com/auth/cloud-platform"
     ]
   }
-
-  # Preventing automatic upgrades and repairs on this node pool
-  management {
-    auto_upgrade = false
-    auto_repair  = false
-  }
 }
 
 resource "google_container_node_pool" "server_pool" {
@@ -59,12 +53,6 @@ resource "google_container_node_pool" "server_pool" {
       "https://www.googleapis.com/auth/monitoring",
       "https://www.googleapis.com/auth/cloud-platform"
     ]
-  }
-
-  # Preventing automatic upgrades and repairs on this node pool
-  management {
-    auto_upgrade = false
-    auto_repair  = false
   }
 }
 
