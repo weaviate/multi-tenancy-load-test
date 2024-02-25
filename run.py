@@ -18,10 +18,15 @@ console = Console()
 
 
 def create_cluster():
-    console.print(Markdown("## Create GKE cluster"))
+    console.print(Markdown(f"## Create GKE cluster ({cfg.cluster_name})"))
     subprocess.run(["terraform", "init"], cwd="terraform", env=env)
     subprocess.run(["terraform", "apply", "--auto-approve"], cwd="terraform", env=env)
     setup_kubernetes_cluster(cfg.cluster_name, cfg.zone, cfg.project, cfg.namespace)
+
+
+def destroy_cluster():
+    console.print(Markdown(f"## Destroy GKE cluster ({cfg.cluster_name})"))
+    subprocess.run(["terraform", "destroy", "--auto-approve"], cwd="terraform", env=env)
 
 
 def run_command(command):
@@ -151,8 +156,8 @@ def run_all_steps():
 @click.option("--namespace", default="weaviate", help="Kubernetes namespace.")
 @click.option("--project", default="semi-automated-benchmarking", help="GCP project.")
 @click.option(
-    "--cluster-name", default="mt-load-test", help="Name of the Kubernetes cluster."
-)
+    "--cluster-name", default="", help="Name of the Kubernetes cluster."
+)  # default will be overriden from serialized state
 @click.option(
     "--path-to-secret-file",
     default="/Users/etiennedilocker/Downloads/semi-automated-benchmarking-d48b1be49cd1.json",
@@ -183,6 +188,7 @@ def main(zone, region, namespace, project, cluster_name, path_to_secret_file, st
             "Push images": push_images,
             "Reset schema": reset_schema,
             "Import data": import_data,
+            "Destroy Cluster": destroy_cluster,
         }
 
         choices = [{"name": action} for action in actions]
@@ -208,6 +214,7 @@ def main(zone, region, namespace, project, cluster_name, path_to_secret_file, st
             "push_images": push_images,
             "reset_schema": reset_schema,
             "import_data": import_data,
+            "destroy_cluster": destroy_cluster,
         }
 
         if step not in actions:

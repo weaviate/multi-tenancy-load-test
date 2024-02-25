@@ -1,0 +1,61 @@
+name: Multi-Tenancy Load-Test 
+
+on:
+  push:
+    # branches:
+    #   - main  # Or any branch you want to trigger this workflow
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install gcloud CLI
+      uses: google-github-actions/setup-gcloud@master
+      with:
+        version: 'latest'
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Install kubectl
+      run: gcloud components install kubectl --quiet
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 'latest'
+
+    - name: Install Python Dependencies
+      run: pip3 install -r requirements.txt
+
+    - name: Create Cluster
+      run: python3 run.py --step=create_cluster
+
+    # - name: Deploy Weaviate
+    #   run: python3 run.py --step=deploy_weaviate
+
+    # - name: Deploy Observability
+    #   run: python3 run.py --step=deploy_observability
+
+    # - name: Wait for Weaviate to be ready
+    #   run: python3 run.py --step=wait_weaviate_ready
+
+    # - name: Push Images
+    #   run: python3 run.py --step=push_images
+
+    # - name: Reset Schema
+    #   run: python3 run.py --step=reset_schema
+
+    # - name: Import Data
+    #   run: python3 run.py --step=import_data
+
+    - name: Destroy Cluster
+      if: always()  # This ensures that this step runs regardless of previous step results
+      run: python3 run.py --step=destroy_cluster
+
