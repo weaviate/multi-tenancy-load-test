@@ -48,6 +48,8 @@ def setup_kubernetes_cluster(cluster_name, zone, project, k8s_namespace):
     run_command(kubectl_set_context)
     kubectl_create_secret = f"kubectl create secret generic backup-secret --from-file=GOOGLE_APPLICATION_CREDENTIALS={cfg.path_to_secret_file}"
 
+    config.load_kube_config()
+
 
 def deploy_weaviate():
     console.print(Markdown("## Deploy Weaviate onto cluster"))
@@ -176,7 +178,13 @@ def main(zone, region, namespace, project, cluster_name, path_to_secret_file, st
         cluster_name,
         path_to_secret_file,
     )
-    config.load_kube_config()
+
+    try:
+        config.load_kube_config()
+    except Excpetion as e:
+        print(
+            f"Can't load kubeconfig. This is fine if this is the first run of the script: {e}"
+        )
 
     if step == "":
         console.print(Markdown("# Multi-Tenancy Load Test - INTERACTIVE MODE"))
