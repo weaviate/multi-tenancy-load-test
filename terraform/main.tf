@@ -20,13 +20,6 @@ resource "google_container_cluster" "my_cluster" {
   initial_node_count = 1
 
   deletion_protection = false
-
-  # Adding management block to control automatic updates on the cluster level
-  # This is more for documentation purposes since the default node pool is removed
-  management {
-    auto_upgrade = false
-    auto_repair  = false
-  }
 }
 
 resource "google_container_node_pool" "client_pool" {
