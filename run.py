@@ -39,7 +39,9 @@ def destroy_cluster():
 
 def run_command(command):
     output = subprocess.check_output(
-        command, shell=True, stderr=subprocess.STDOUT, check=True
+        command,
+        shell=True,
+        stderr=subprocess.STDOUT,
     )
     print("Command output:", output.decode())
 
@@ -58,7 +60,12 @@ def setup_kubernetes_cluster(cluster_name, zone, project, k8s_namespace):
     run_command(kubectl_set_context)
 
     kubectl_create_secret = f"kubectl create secret generic backup-secret --from-file=GOOGLE_APPLICATION_CREDENTIALS={cfg.path_to_secret_file}"
-    run_command(kubectl_create_secret)
+    try:
+        run_command(kubectl_create_secret)
+    except Exception as e:
+        print(
+            f"silently ignoring create secret error, this may fail on duplicate creation: {e}"
+        )
 
     config.load_kube_config()
 
