@@ -58,6 +58,7 @@ class Config:
     weaviate_grpc_hostname: str = None
     grafana_hostname: str
     grafana_password: str
+    prometheus_hostname: str
     git_hash: str
 
 

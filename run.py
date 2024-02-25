@@ -13,8 +13,10 @@ import sys
 from cli_config import init_config
 import weaviate_interaction
 import warnings
+import prometheus
 
 warnings.filterwarnings("ignore", category=ResourceWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 cfg, env = None, None
@@ -113,6 +115,18 @@ def grafana_credentials() -> (str, str):
     print(f"Password: {password}")
 
     return (external_ip, password)
+
+
+def prometheus_host() -> str:
+    external_ip = k8s.get_external_ip_by_app_name("prometheus")
+    while external_ip == "pending" or not external_ip:
+        print(
+            "External IP (prometheus) is still pending. Retrying in 5 seconds...",
+            file=sys.stderr,
+        )
+        time.sleep(5)
+        external_ip = k8s.get_external_ip_by_app_name("prometheus")
+    return external_ip
 
 
 def wait_weaviate_ready():
@@ -214,6 +228,7 @@ def wait_for_import():
 
 def query():
     console.print(Markdown("## Query"))
+    cfg.prometheus_hostname = prometheus_host()
 
     query_pods = cfg.query_min_pods
     yaml_file_path = "importer/manifests/querying-deployment.yaml"
@@ -233,7 +248,13 @@ def query():
         k8s.scale_deployment("query-deployment", cfg.namespace, query_pods)
 
         time.sleep(60)
-        console.print("qps=???", style="bold")
+        query = "sum(rate(vector_query_seconds_count[30s]))"
+        qps = int(prometheus.query(f"http://{cfg.prometheus_hostname}", query, 30))
+        query = "sum(rate(vector_query_seconds_sum[30s]))/sum(rate(vector_query_seconds_count[30s]))"
+        mean_latency = (
+            prometheus.query(f"http://{cfg.prometheus_hostname}", query, 30) * 1000
+        )
+        console.print(f"qps={qps} mean_latency={mean_latency:.2f}ms", style="bold")
 
         query_pods += 10
 
