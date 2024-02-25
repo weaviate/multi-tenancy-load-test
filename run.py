@@ -181,7 +181,7 @@ def main(zone, region, namespace, project, cluster_name, path_to_secret_file, st
 
     try:
         config.load_kube_config()
-    except Excpetion as e:
+    except Exception as e:
         print(
             f"Can't load kubeconfig. This is fine if this is the first run of the script: {e}"
         )
