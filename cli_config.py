@@ -90,7 +90,7 @@ def init_config(
     if cluster_name == "":
         # the user didn't specify one, let's use our custom logic:
         cfg.cluster_name = get_cluster_name()
-        print(f"created a new cluster name: {cfg.cluster_name}")
+        print(f"using cluster name: {cfg.cluster_name}")
     else:
         cfg.cluster_name = cluster_name
 
@@ -100,7 +100,8 @@ def init_config(
 
     cfg.replication_factor = 1
     cfg.tenants_per_job = 1000
-    cfg.objects_per_tenant = 1536
+    cfg.objects_per_tenant = 1000
+    cfg.vector_dimensions = 1536
     cfg.parallel_importers = 12
     cfg.importer_completions = 12
 

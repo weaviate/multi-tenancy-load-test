@@ -38,6 +38,7 @@ def do():
     host = os.getenv("HOST")
     host_grpc = os.getenv("HOST_GRPC")
     no_of_tenants = int(os.getenv("TENANTS") or 10)
+    vector_dimensions = int(os.getenv("VECTOR_DIMENSIONS") or 1536)
 
     parallel_queries_per_tenant = int(os.getenv("PARALLEL_QUERIES_PER_TENANT") or 3)
     queries_per_tenant = int(os.getenv("QUERIES_PER_TENANT") or 1000)
@@ -58,7 +59,13 @@ def do():
     tenants = tenants * parallel_queries_per_tenant
 
     querying_tenants.inc(unique_tenants)
-    query_in_parallel(client, tenants, queries_per_tenant, query_frequency_per_minute)
+    query_in_parallel(
+        client,
+        tenants,
+        queries_per_tenant,
+        query_frequency_per_minute,
+        vector_dimensions,
+    )
     querying_tenants.dec(unique_tenants)
 
     # stick around for another 30s doing nothing, so we can make sure all
@@ -66,10 +73,12 @@ def do():
     time.sleep(30)
 
 
-def query_in_parallel(client: weaviate.WeaviateClient, tenants, total, qpm):
+def query_in_parallel(
+    client: weaviate.WeaviateClient, tenants, total, qpm, vector_dimensions
+):
     threads = []
     for tenant in tenants:
-        t = Thread(target=query, args=[client, tenant, total, qpm])
+        t = Thread(target=query, args=[client, tenant, total, qpm, vector_dimensions])
         threads.append(t)
     for t in threads:
         t.start()
@@ -77,7 +86,7 @@ def query_in_parallel(client: weaviate.WeaviateClient, tenants, total, qpm):
         t.join()
 
 
-def query(client: weaviate.WeaviateClient, tenant, total, qpm):
+def query(client: weaviate.WeaviateClient, tenant, total, qpm, vector_dimensions):
     col = client.collections.get("MultiTenancyTest").with_tenant(tenant)
     if replication:
         col = col.with_consistency_level(wvc.ConsistencyLevel.ONE)
@@ -90,7 +99,9 @@ def query(client: weaviate.WeaviateClient, tenant, total, qpm):
         result = None
         fail = False
         try:
-            res = col.query.near_vector(np.random.rand(1, 1536)[0].tolist(), limit=10)
+            res = col.query.near_vector(
+                np.random.rand(1, vector_dimensions)[0].tolist(), limit=10
+            )
 
             if len(res.objects) != 10:
                 logger.error(f"Missing results. Requested 10, but got {res_len}")

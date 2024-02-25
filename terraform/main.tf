@@ -20,6 +20,13 @@ resource "google_container_cluster" "my_cluster" {
   initial_node_count = 1
 
   deletion_protection = false
+
+  # Adding management block to control automatic updates on the cluster level
+  # This is more for documentation purposes since the default node pool is removed
+  management {
+    auto_upgrade = false
+    auto_repair  = false
+  }
 }
 
 resource "google_container_node_pool" "client_pool" {
@@ -36,6 +43,12 @@ resource "google_container_node_pool" "client_pool" {
       "https://www.googleapis.com/auth/monitoring",
       "https://www.googleapis.com/auth/cloud-platform"
     ]
+  }
+
+  # Preventing automatic upgrades and repairs on this node pool
+  management {
+    auto_upgrade = false
+    auto_repair  = false
   }
 }
 
@@ -54,4 +67,11 @@ resource "google_container_node_pool" "server_pool" {
       "https://www.googleapis.com/auth/cloud-platform"
     ]
   }
+
+  # Preventing automatic upgrades and repairs on this node pool
+  management {
+    auto_upgrade = false
+    auto_repair  = false
+  }
 }
+

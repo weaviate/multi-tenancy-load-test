@@ -135,6 +135,7 @@ def push_images():
     console.print(
         Markdown("## Build and push docker images for importing and querying")
     )
+    subprocess.run(["gcloud auth configure-docker"], shell=True, env=env)
     subprocess.run(["importer/build_and_push.sh"], shell=True, env=env)
 
 
