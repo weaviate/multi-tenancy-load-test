@@ -62,14 +62,18 @@ def get_cluster_name():
 
 
 def init_config(
-    zone, region, namespace, project, cluster_name, path_to_secret_file
+    zone,
+    region,
+    namespace,
+    project,
+    cluster_name,
 ) -> (Config, dict):
     cfg = Config()
     cfg.namespace = namespace
     cfg.project = project
     cfg.region = region
     cfg.zone = zone
-    cfg.path_to_secret_file = path_to_secret_file
+    cfg.path_to_secret_file = "./terraform/backup-service-account-key.json"
     cfg.git_hash = get_git_short_hash()
     if cluster_name == "":
         # the user didn't specify one, let's use our custom logic:

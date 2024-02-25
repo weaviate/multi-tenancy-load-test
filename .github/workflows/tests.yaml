@@ -41,14 +41,14 @@ jobs:
     - name: Create Cluster
       run: python3 run.py --step=create_cluster
 
-    # - name: Deploy Weaviate
-    #   run: python3 run.py --step=deploy_weaviate
+    - name: Deploy Weaviate
+      run: python3 run.py --step=deploy_weaviate
 
-    # - name: Deploy Observability
-    #   run: python3 run.py --step=deploy_observability
+    - name: Deploy Observability
+      run: python3 run.py --step=deploy_observability
 
-    # - name: Wait for Weaviate to be ready
-    #   run: python3 run.py --step=wait_weaviate_ready
+    - name: Wait for Weaviate to be ready
+      run: python3 run.py --step=wait_weaviate_ready
 
     # - name: Push Images
     #   run: python3 run.py --step=push_images

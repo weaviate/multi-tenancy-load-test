@@ -40,13 +40,15 @@ def setup_kubernetes_cluster(cluster_name, zone, project, k8s_namespace):
     run_command(gcloud_command)
 
     # kubectl command to create namespace
-    kubectl_create_ns = f'kubectl create ns "{k8s_namespace}"'
+    kubectl_create_ns = f'kubectl create ns "{k8s_namespace}" || true'
     run_command(kubectl_create_ns)
 
     # kubectl command to set context
     kubectl_set_context = f"kubectl config set-context $(kubectl config current-context) --namespace {k8s_namespace}"
     run_command(kubectl_set_context)
+
     kubectl_create_secret = f"kubectl create secret generic backup-secret --from-file=GOOGLE_APPLICATION_CREDENTIALS={cfg.path_to_secret_file}"
+    run_command(kubectl_create_secret)
 
     config.load_kube_config()
 
@@ -160,13 +162,8 @@ def run_all_steps():
 @click.option(
     "--cluster-name", default="", help="Name of the Kubernetes cluster."
 )  # default will be overriden from serialized state
-@click.option(
-    "--path-to-secret-file",
-    default="/Users/etiennedilocker/Downloads/semi-automated-benchmarking-d48b1be49cd1.json",
-    help="Path to the GCP secret file that's used for backups.",
-)  # TODO!
 @click.option("--step", default="", help="Execute a specific step")
-def main(zone, region, namespace, project, cluster_name, path_to_secret_file, step):
+def main(zone, region, namespace, project, cluster_name, step):
     global cfg
     global env
 
@@ -176,7 +173,6 @@ def main(zone, region, namespace, project, cluster_name, path_to_secret_file, st
         namespace,
         project,
         cluster_name,
-        path_to_secret_file,
     )
 
     try:

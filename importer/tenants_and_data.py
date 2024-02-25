@@ -51,6 +51,10 @@ def do(client: weaviate.WeaviateClient):
     objects_batch = Summary("objects_batch_seconds", "Duration it took to add objects")
     i = 0
     col = client.collections.get("MultiTenancyTest")
+
+    # reduce concurrency of all runners starting at the same time, start with
+    # random offset
+    time.sleep(random.random() * 5)
     while i < total_tenants:
         # create next batch of tenants
         tenant_names = [f"{random_name(24)}" for j in range(tenants_per_cycle)]
