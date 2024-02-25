@@ -105,7 +105,7 @@ def wait_for_job_completion(
 
 
 def check_statefulset_pods_ready_and_count(
-    statefulset_name: str, namespace: str
+    statefulset_name: str, total_desired_pods: int, namespace: str
 ) -> (int, int):
     """
     Checks the number of ready pods in a specified StatefulSet and returns this number along with the total desired count of pods.
@@ -119,36 +119,38 @@ def check_statefulset_pods_ready_and_count(
         - The first integer represents the number of pods that are currently in a ready state.
         - The second integer represents the total number of pods desired according to the StatefulSet's specification.
     """
-    v1 = client.CoreV1Api()
-    apps_v1 = client.AppsV1Api()
+    try:
+        v1 = client.CoreV1Api()
 
-    # Get the desired number of replicas from the StatefulSet specification
-    statefulset = apps_v1.read_namespaced_stateful_set(statefulset_name, namespace)
-    total_desired_pods = (
-        statefulset.status.replicas
-    )  # Use .status.replicas to reflect actual desired count
+        # Count ready pods
+        ready_pods = 0
+        label_selector = f"app.kubernetes.io/name=={statefulset_name}"
+        pods = v1.list_namespaced_pod(namespace, label_selector=label_selector)
+        for pod in pods.items:
+            if pod.status.phase == "Running" and all(
+                [cs.ready for cs in pod.status.container_statuses]
+            ):
+                ready_pods += 1
 
-    # Count ready pods
-    ready_pods = 0
-    label_selector = f"app.kubernetes.io/name=={statefulset_name}"
-    pods = v1.list_namespaced_pod(namespace, label_selector=label_selector)
-    for pod in pods.items:
-        if pod.status.phase == "Running" and all(
-            [cs.ready for cs in pod.status.container_statuses]
-        ):
-            ready_pods += 1
-
-    return ready_pods, total_desired_pods
+        return ready_pods, total_desired_pods
+    except Exception as e:
+        print(f"error retrieving status from k8s api: {e}")
+        return 0, total_desired_pods
 
 
 def wait_for_statefulset_pods_ready_with_display(
-    statefulset_name: str, namespace: str, check_interval=10, max_wait_time=None
+    statefulset_name: str,
+    total_desired_pods: int,
+    namespace: str,
+    check_interval=10,
+    max_wait_time=None,
 ):
     """
     Waits for all pods in a specified StatefulSet to be ready, displaying the number of ready pods during each wait interval.
 
     Args:
     - statefulset_name (str): The name of the StatefulSet to monitor.
+    - total_desired_pods (int): How many pods should we wait for?
     - namespace (str): The namespace where the StatefulSet is deployed.
     - check_interval (int): How often (in seconds) to check the StatefulSet's readiness status.
     - max_wait_time (int, optional): The maximum amount of time (in seconds) to wait for the StatefulSet to become ready. If None, will wait indefinitely.
@@ -167,7 +169,7 @@ def wait_for_statefulset_pods_ready_with_display(
 
     while True:
         ready_pods, total_desired_pods = check_statefulset_pods_ready_and_count(
-            statefulset_name, namespace
+            statefulset_name, total_desired_pods, namespace
         )
         if ready_pods == total_desired_pods:
             print(
@@ -189,18 +191,21 @@ def wait_for_statefulset_pods_ready_with_display(
 
 
 def get_external_ip_by_app_name(app_name: str):
-    v1 = client.CoreV1Api()
-    services = v1.list_service_for_all_namespaces(
-        label_selector=f"app.kubernetes.io/name={app_name}"
-    )
+    try:
+        v1 = client.CoreV1Api()
+        services = v1.list_service_for_all_namespaces(
+            label_selector=f"app.kubernetes.io/name={app_name}"
+        )
 
-    for svc in services.items:
-        if (
-            svc.status.load_balancer.ingress
-            and len(svc.status.load_balancer.ingress) > 0
-        ):
-            external_ip = svc.status.load_balancer.ingress[0].ip
-            return external_ip
+        for svc in services.items:
+            if (
+                svc.status.load_balancer.ingress
+                and len(svc.status.load_balancer.ingress) > 0
+            ):
+                external_ip = svc.status.load_balancer.ingress[0].ip
+                return external_ip
+    except Exception as e:
+        print(f"error retrieving status from k8s api: {e}")
 
     # If no service is found or if no external IP is available, return None or handle as needed.
     return None

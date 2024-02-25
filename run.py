@@ -104,7 +104,7 @@ def grafana_credentials() -> (str, str):
 def wait_weaviate_ready():
     console.print(Markdown("## Wait for Weaviate pods"))
     k8s.wait_for_statefulset_pods_ready_with_display(
-        "weaviate", "weaviate", 10, 15 * 60
+        "weaviate", cfg.weaviate_pods, "weaviate", 10, 15 * 60
     )
     cfg.weaviate_hostname, cfg.weaviate_grpc_hostname = weaviate_hostname()
 
