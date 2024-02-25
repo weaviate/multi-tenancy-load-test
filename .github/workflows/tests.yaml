@@ -30,6 +30,11 @@ jobs:
     - name: Install kubectl
       run: gcloud components install kubectl --quiet
 
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+      with:
+         version: '3.8.2'
+
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
       with:
