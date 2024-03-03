@@ -105,7 +105,7 @@ def init_config(
 
     # todo: make configurable
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "preview-prevent-schema-deadlock-split-incomingcommit-into-locked-unlocked-parts-1c6590b"
+    cfg.weaviate_version = "1.24.1"
 
     cfg.replication_factor = 1
     cfg.tenants_per_job = 1000

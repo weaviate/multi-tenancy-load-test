@@ -263,6 +263,108 @@ def query():
     k8s.scale_deployment("query-deployment", cfg.namespace, query_pods)
 
 
+def get_backup_id(cluster_name: str) -> str:
+    # right now we can only do a single backup per run. Instead we could have a
+    # persistent counter where restore always refers to the last created one,
+    # but it is possible to create more than one by incrementing the counter or
+    # so. For now a single backup per run should be fine.
+    return f"{cfg.cluster_name}-backup"
+
+
+def create_backup():
+    if not cfg.weaviate_hostname:
+        print("no weaviate hostname found, run wait_weaviate_ready step first")
+        wait_weaviate_ready()
+
+    console.print(Markdown("## Create a GCS backup"))
+    wclient = weaviate_interaction.client(
+        cfg.weaviate_hostname, cfg.weaviate_grpc_hostname
+    )
+
+    weaviate_interaction.create_backup(
+        wclient,
+        get_backup_id(cfg.cluster_name),
+    )
+
+
+def wait_for_backup():
+    if not cfg.weaviate_hostname:
+        print("no weaviate hostname found, run wait_weaviate_ready step first")
+        wait_weaviate_ready()
+
+    console.print(Markdown("## Wait for GCS backup to complete"))
+    console.print(Markdown("### Warning: This will likely take a long time!"))
+
+    wclient = weaviate_interaction.client(
+        cfg.weaviate_hostname, cfg.weaviate_grpc_hostname
+    )
+
+    weaviate_interaction.wait_for_backup_complete(
+        wclient,
+        get_backup_id(cfg.cluster_name),
+        interval=30,
+        max_wait=60 * 60,
+    )
+
+
+def delete_collection():
+    if not cfg.weaviate_hostname:
+        print("no weaviate hostname found, run wait_weaviate_ready step first")
+        wait_weaviate_ready()
+
+    console.print(Markdown("## Delete Collections (in anticipation of backup restore)"))
+
+    wclient = weaviate_interaction.client(
+        cfg.weaviate_hostname, cfg.weaviate_grpc_hostname
+    )
+
+    max_attempts = 10
+    for i in range(max_attempts):
+        try:
+            wclient.collections.delete_all()
+            return
+        except Exception as e:
+            print(f"Delete failed, trying again: {e}")
+
+    raise Exception(f"could not delete collection in {max_attempts}")
+
+
+def restore_backup():
+    if not cfg.weaviate_hostname:
+        print("no weaviate hostname found, run wait_weaviate_ready step first")
+        wait_weaviate_ready()
+
+    console.print(Markdown("## Restore a GCS backup"))
+    wclient = weaviate_interaction.client(
+        cfg.weaviate_hostname, cfg.weaviate_grpc_hostname
+    )
+
+    weaviate_interaction.restore_backup(
+        wclient,
+        get_backup_id(cfg.cluster_name),
+    )
+
+
+def wait_for_backup_restore():
+    if not cfg.weaviate_hostname:
+        print("no weaviate hostname found, run wait_weaviate_ready step first")
+        wait_weaviate_ready()
+
+    console.print(Markdown("## Wait for GCS backup to restore"))
+    console.print(Markdown("### Warning: This can take significant time!"))
+
+    wclient = weaviate_interaction.client(
+        cfg.weaviate_hostname, cfg.weaviate_grpc_hostname
+    )
+
+    weaviate_interaction.wait_for_backup_restore_complete(
+        wclient,
+        get_backup_id(cfg.cluster_name),
+        interval=30,
+        max_wait=60 * 60,
+    )
+
+
 @click.command()
 @click.option("--zone", default="us-central1-c", help="Deployment zone.")
 @click.option("--region", default="us-central1", help="Deployment region.")
@@ -303,6 +405,11 @@ def main(zone, region, namespace, project, cluster_name, step):
             "Import data": import_data,
             "Wait for import to finish": wait_for_import,
             "Query": query,
+            "Create Backup": create_backup,
+            "Wait for Backup Creation": wait_for_backup,
+            "Delete Collection (in anticipation of backup restore)": delete_collection,
+            "Restore Backup": restore_backup,
+            "Wait for Backup Restore": wait_for_backup_restore,
             "Destroy Cluster": destroy_cluster,
         }
 
@@ -331,6 +438,11 @@ def main(zone, region, namespace, project, cluster_name, step):
             "import_data": import_data,
             "wait_for_import": wait_for_import,
             "query": query,
+            "create_backup": create_backup,
+            "wait_for_backup": wait_for_backup,
+            "delete_collection": delete_collection,
+            "restore_backup": restore_backup,
+            "wait_for_backup_restore": wait_for_backup_restore,
             "destroy_cluster": destroy_cluster,
         }
 
