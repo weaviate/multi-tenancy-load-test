@@ -132,7 +132,15 @@ def prometheus_host() -> str:
 def wait_weaviate_ready():
     console.print(Markdown("## Wait for Weaviate pods"))
     k8s.wait_for_statefulset_pods_ready_with_display(
-        "weaviate", cfg.weaviate_pods, "weaviate", 10, 15 * 60
+        "weaviate",
+        cfg.weaviate_pods,
+        "weaviate",
+        15,
+        # 30 minutes may seem very long, but if the k8s cluster runs updates in the
+        # background getting stuck at 11/12 is not uncommon. Failing the pipeline just
+        # because the cluster does updates and the API is not responsive does not make
+        # sense.
+        30 * 60,
     )
     cfg.weaviate_hostname, cfg.weaviate_grpc_hostname = weaviate_hostname()
 
