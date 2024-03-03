@@ -311,7 +311,7 @@ def wait_for_backup():
         wclient,
         get_backup_id(cfg.cluster_name),
         interval=30,
-        max_wait=60 * 60,
+        max_wait=180 * 60,
     )
 
 
