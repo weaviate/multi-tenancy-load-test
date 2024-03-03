@@ -41,6 +41,10 @@ def get_job_completion_status(job_name: str, namespace: str) -> tuple:
         return (is_complete, current_completions, desired_completions)
 
     except client.exceptions.ApiException as e:
+        print(f"An API error occurred: {e}")
+        return (False, 0, 0)
+
+    except Exception as e:
         print(f"An error occurred: {e}")
         return (False, 0, 0)
 
@@ -285,6 +289,11 @@ def scale_deployment(deployment_name: str, namespace: str, num_replicas: int) ->
         print(f"Deployment {deployment_name} scaled to {num_replicas} replicas.")
         return api_response
     except client.ApiException as e:
+        print(
+            f"Exception when calling AppsV1Api->patch_namespaced_deployment_scale: {e}"
+        )
+        return None
+    except Exception as e:
         print(
             f"Exception when calling AppsV1Api->patch_namespaced_deployment_scale: {e}"
         )
