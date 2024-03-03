@@ -74,6 +74,24 @@ jobs:
     - name: Query
       run: python3 run.py --step=query
 
+    - name: Create Backup
+      run: python3 run.py --step=create_backup
+
+    - name: Wait for Backup
+      run: python3 run.py --step=wait_for_backup
+
+    - name: Delete Collection
+      run: python3 run.py --step=delete_collection
+
+    - name: Restore Backup
+      run: python3 run.py --step=restore_backup
+
+    - name: Wait for Backup Restore
+      run: python3 run.py --step=wait_for_backup_restore
+
+    - name: Query
+      run: python3 run.py --step=query
+
     - name: Destroy Cluster
       if: always()  # This ensures that this step runs regardless of previous step results
       run: python3 run.py --step=destroy_cluster
