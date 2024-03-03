@@ -103,12 +103,12 @@ def init_config(
     else:
         cfg.cluster_name = cluster_name
 
-    # todo: make configurable
+    # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
     cfg.weaviate_version = "1.24.1"
 
     cfg.replication_factor = 1
-    cfg.tenants_per_job = 1000
+    cfg.tenants_per_job = 10000
     cfg.objects_per_tenant = 1000
     cfg.vector_dimensions = 1536
     cfg.parallel_importers = 12
