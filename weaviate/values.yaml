@@ -246,6 +246,7 @@ env:
   # NOTE: Make sure to add the users to the authorization above overwise they will not be allowed to interact with Weaviate.
   # AUTHENTICATION_APIKEY_USERS: 'jane@doe.com,ian-smith'
   RAFT_BOOTSTRAP_EXPECT: 7
+  LOG_LEVEL: debug
 
 envSecrets:
   # create a Kubernetes secret with AUTHENTICATION_APIKEY_ALLOWED_KEYS key and its respective value
