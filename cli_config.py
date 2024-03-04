@@ -105,7 +105,9 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "1.24.1"
+    cfg.weaviate_version = (
+        "preview-implement-schema-updates-using-raft-consensus-dfb69c9"
+    )
 
     cfg.replication_factor = 1
     cfg.tenants_per_job = 10000
