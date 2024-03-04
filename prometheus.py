@@ -18,19 +18,29 @@ def query(prometheus_url: str, query: str, seconds_ago: int) -> float:
         "step": "10s",  # This should match the range you are looking over
     }
 
-    response = requests.get(query_url, params=params)
-    if response.status_code == 200:
+    max_attempts = 5
+    for attempt in range(max_attempts):
         try:
-            result = response.json()
-            if len(result["data"]["result"]) > 0:
-                values = result["data"]["result"][0]["values"]
-                values = [float(tpl[1]) for tpl in values]
-                mean = sum(values) / len(values)
-                return mean
+            response = requests.get(query_url, params=params)
+            if response.status_code == 200:
+                try:
+                    result = response.json()
+                    if len(result["data"]["result"]) > 0:
+                        values = result["data"]["result"][0]["values"]
+                        values = [float(tpl[1]) for tpl in values]
+                        mean = sum(values) / len(values)
+                        return mean
+                    else:
+                        return 0.0
+                except Exception as e:
+                    print(f"Could not parse the response: {e}")
+                    continue
             else:
-                return 0.0
+                print("Failed to query Prometheus:", response.text)
+                continue
         except Exception as e:
-            print(f"Could not parse the response: {e}")
-    else:
-        print("Failed to query Prometheus:", response.text)
-        return 0.0
+            print(f"error trying to query prometheus: {e}")
+            continue
+
+    print(f"all {max_attempts} retries failed, could not get prometheus data")
+    return 0.0
