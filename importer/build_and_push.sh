@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 cd "${0%/*}"
 
 image="gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"

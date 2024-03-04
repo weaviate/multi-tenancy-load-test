@@ -13,6 +13,7 @@ host = os.getenv("HOST")
 host_grpc = os.getenv("HOST_GRPC")
 replication_factor = int(os.getenv("REPLICATION_FACTOR") or 1)
 
+
 client = weaviate.connect_to_custom(
     http_host=host,
     http_port=80,

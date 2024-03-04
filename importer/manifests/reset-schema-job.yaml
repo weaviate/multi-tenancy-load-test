@@ -1,8 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: importer
-  namespace: "$K8S_NAMESPACE"
+  name: schema-resetter
 spec:
   parallelism: 1
   completions: 1
@@ -19,16 +18,16 @@ spec:
                 - client-pool 
 
       containers:
-      - image: "gcr.io/semi-automated-benchmarking/load-test-importer:$GIT_HASH"
+      - image: "gcr.io/semi-automated-benchmarking/load-test-importer:${GIT_HASH}"
         name: schema-resetter
         command: ["python3", "reset_schema.py"]
         imagePullPolicy: Always
         env:
         - name: "HOST"
-          value: "weaviate.$K8S_NAMESPACE.svc.cluster.local"
+          value: "weaviate.${K8S_NAMESPACE}.svc.cluster.local"
         - name: "HOST_GRPC"
-          value: "weaviate-grpc.$K8S_NAMESPACE.svc.cluster.local"
+          value: "weaviate-grpc.${K8S_NAMESPACE}.svc.cluster.local"
         - name: "REPLICATION_FACTOR"
-          value: "$REPLICATION_FACTOR"
+          value: "${REPLICATION_FACTOR}"
       restartPolicy: Never
   backoffLimit: 4

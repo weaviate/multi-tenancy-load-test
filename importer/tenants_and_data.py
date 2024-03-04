@@ -30,6 +30,7 @@ tenants_per_cycle = int(os.getenv("TENANTS_PER_CYCLE"))
 objects_per_tenant = int(os.getenv("OBJECTS_PER_TENANT"))
 prometheus_port = int(os.getenv("PROMETHEUS_PORT") or 8000)
 implicit_ratio = float(os.getenv("IMPLICIT_TENANT_RATIO"))
+vector_dimensions = int(os.getenv("VECTOR_DIMENSIONS") or 1536)
 
 
 def random_name(length):
@@ -49,6 +50,10 @@ def do(client: weaviate.WeaviateClient):
     objects_batch = Summary("objects_batch_seconds", "Duration it took to add objects")
     i = 0
     col = client.collections.get("MultiTenancyTest")
+
+    # reduce concurrency of all runners starting at the same time, start with
+    # random offset
+    time.sleep(random.random() * 5)
     while i < total_tenants:
         # create next batch of tenants
         tenant_names = [f"{random_name(24)}" for j in range(tenants_per_cycle)]
@@ -113,7 +118,7 @@ def load_records(client: weaviate.WeaviateClient, tenant_names):
                         # "text5": f"{random.randint(0, 10000)}",
                     },
                     tenant=tenant,
-                    vector=np.random.rand(1536, 1)[0].tolist(),
+                    vector=np.random.rand(1, vector_dimensions)[0].tolist(),
                 )
         errors = client.batch.failed_objects
         if len(errors) > 0:
