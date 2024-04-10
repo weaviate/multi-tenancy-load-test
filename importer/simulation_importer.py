@@ -6,6 +6,7 @@ import random
 import uuid
 import numpy as np
 from loguru import logger
+from prometheus_client import start_http_server, Counter, Summary
 
 col_name = "TenaciousT"  # this is not the best collection in the world – this is just a tribute
 ttl_col_name = "TTL"
@@ -39,6 +40,9 @@ def tenant_name(id: int) -> str:
 
 
 def import_loop():
+    start_http_server(prometheus_port)
+
+    tenants_added = Counter("tenants_added_total", "Number of tenants added.")
     primary_col = client.collections.get(col_name)
     ttl_col = client.collections.get(ttl_col_name)
 
@@ -49,6 +53,8 @@ def import_loop():
             lower = min_tenant_id
 
         upper = lower + tenants_per_cycle
+
+        tenants_added.inc(tenants_per_cycle)
         if upper > max_tenant_id:
             upper = max_tenant_id
 
