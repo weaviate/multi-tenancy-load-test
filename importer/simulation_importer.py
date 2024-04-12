@@ -68,10 +68,27 @@ def import_loop():
 def import_tenants_batch(
     primary_col: weaviate.collections.Collection, lower: int, upper: int
 ):
-    tenants = [wvc.tenants.Tenant(name=tenant_name(tid)) for tid in range(lower, upper)]
+    all_tenant_names = set(primary_col.tenants.get().keys())
+    tenant_range = set(tenant_name(tid) for tid in range(lower, upper))
 
-    primary_col.tenants.create(tenants)
-    for tenant in tenants:
+    existing_tenant_names = all_tenant_names & tenant_range
+    new_tenant_names = tenant_range - all_tenant_names
+
+    existing_tenants = [
+        wvc.tenants.Tenant(
+            name=name, activity_status=weaviate.schema.TenantActivityStatus.HOT
+        )
+        for name in existing_tenant_names
+    ]
+    new_tenants = [wvc.tenants.Tenant(name=name) for name in new_tenant_names]
+
+    if any(new_tenants):
+        primary_col.tenants.create(new_tenants)
+
+    if any(existing_tenants):
+        primary_col.tenants.update(existing_tenants)
+
+    for tenant in existing_tenant_names.union(new_tenant_names):
         col_t = primary_col.with_tenant(tenant)
         import_data_batch(col_t)
 
@@ -110,7 +127,8 @@ def add_ttl_for_tenants(
                 properties={
                     "tenant_name": tenant_name(tid),
                     "expiration": expiration.isoformat(),
-                }
+                },
+                uuid=uuid.UUID(int=tid),
             )
 
     if len(client.batch.failed_objects) > 0:
