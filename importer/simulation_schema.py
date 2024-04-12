@@ -30,7 +30,6 @@ client.collections.create(
         ),
         wvc.config.Property(name="expiration", data_type=wvc.config.DataType.DATE),
     ],
-    vector_index_config=wvc.config.Configure.VectorIndex.none(),
 )
 
 client.collections.create(
@@ -40,6 +39,7 @@ client.collections.create(
         quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(),
     ),
     multi_tenancy_config=wvc.config.Configure.multi_tenancy(True),
+    vectorizer_config=None,
 )
 
 client.close()
