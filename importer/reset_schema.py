@@ -10,15 +10,17 @@ from loguru import logger
 from typing import Optional
 
 host = os.getenv("HOST")
+host_port = int(os.getenv("HOST_PORT") or 80)
 host_grpc = os.getenv("HOST_GRPC")
+grpc_port = int(os.getenv("GRPC_PORT") or 50051)
 replication_factor = int(os.getenv("REPLICATION_FACTOR") or 1)
 
 client = weaviate.connect_to_custom(
     http_host=host,
-    http_port=80,
+    http_port=host_port,
     http_secure=False,
     grpc_host=host_grpc,
-    grpc_port=50051,
+    grpc_port=grpc_port,
     grpc_secure=False,
 )
 
