@@ -105,7 +105,7 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "preview-don-t-merge-just-for-testing-quick-n-dirty-way-to-see-if-lsm-store-is-open-multiple-times-c3c4381"
+    cfg.weaviate_version = "semitechnologies/weaviate:1.25.0-raft-83a51ad"
 
     cfg.replication_factor = 1
     cfg.tenants_per_job = 5000
