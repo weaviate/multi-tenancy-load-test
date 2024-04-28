@@ -108,7 +108,7 @@ def init_config(
     cfg.weaviate_version = "1.24.10"
 
     cfg.replication_factor = 1
-    cfg.tenants_per_job = 10000
+    cfg.tenants_per_job = 5000
     cfg.objects_per_tenant = 1000
     cfg.vector_dimensions = 1536
     cfg.parallel_importers = 12
