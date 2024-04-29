@@ -226,6 +226,8 @@ env:
 
   CLUSTER_IGNORE_SCHEMA_SYNC: false
 
+  PERSISTENCE_LSM_ACCESS_STRATEGY: pread
+
   ##########################
   # API Keys with ENV Vars #
   ##########################
