@@ -40,6 +40,7 @@ client.collections.create(
     ),
     multi_tenancy_config=wvc.config.Configure.multi_tenancy(True),
     vectorizer_config=None,
+    replication_config=wvc.config.Configure.replication(factor=3),
 )
 
 client.close()
