@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tenant-offload
+  namespace: "${K8S_NAMESPACE}"
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /
+        prometheus.io/port: "8000"
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values:
+                - client-pool 
+
+      containers:
+      - image: "gcr.io/semi-automated-benchmarking/load-test-importer:${GIT_HASH}"
+        name: importer
+        command: ["python3", "tenants_offloader.py"]
+        imagePullPolicy: Always
+        env:
+        - name: "HOST"
+          value: "weaviate.${K8S_NAMESPACE}.svc.cluster.local"
+        - name: "HOST_GRPC"
+          value: "weaviate-grpc.${K8S_NAMESPACE}.svc.cluster.local"
+        - name: "TOTAL_TENANTS"
+          value: "${TOTAL_TENANTS}"
+        - name: "TENANTS_PER_CYCLE"
+          value: "50"
+      restartPolicy: Never
+  backoffLimit: 4

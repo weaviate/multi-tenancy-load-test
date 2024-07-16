@@ -105,10 +105,10 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "preview-fix-potential-deadlock-by-removing-recursive-read-locking-e760e1f"
+    cfg.weaviate_version = "preview-offload-improve-performance-update-tenant-upload-download-process-all-at-once-605ed22"
 
-    cfg.replication_factor = 1
-    cfg.tenants_per_job = 5000
+    cfg.replication_factor = 3
+    cfg.tenants_per_job = 1000
     cfg.objects_per_tenant = 1000
     cfg.vector_dimensions = 1536
     cfg.parallel_importers = 12
@@ -143,5 +143,6 @@ def init_config(
     env["QUERY_TOTAL_PER_TENANT"] = str(cfg.query_total_per_tenant)
     env["QUERY_TENANTS_PER_POD"] = str(cfg.query_tenants_per_pod)
     env["QUERY_USERS_PER_TENANT"] = str(cfg.query_users_per_tenant)
+    env["TOTAL_TENANTS"]=str(cfg.weaviate_pods*cfg.tenants_per_job)
 
     return cfg, env

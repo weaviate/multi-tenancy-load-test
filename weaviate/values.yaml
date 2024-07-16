@@ -25,15 +25,15 @@ args:
   - 'http'
   - '--config-file'
   - '/weaviate-config/conf.yaml'
-  - --read-timeout=60s 
+  - --read-timeout=60s
   - --write-timeout=60s
 
 # below is an example that can be used to set an arbitrary nofile limit at
 # startup:
 #
-# command: 
+# command:
 #   - "/bin/sh"
-# args: 
+# args:
 #   - "-c"
 #   - "ulimit -n 65535 && /bin/weaviate --host 0.0.0.0 --port 8080 --scheme http --config-file /weaviate-config/conf.yaml"
 
@@ -53,7 +53,7 @@ initContainers:
       repo: alpine
       tag: latest
       pullPolicy: IfNotPresent
-  
+
   extraInitContainers: {}
   # - image: some-image
   #   name: some-name
@@ -63,7 +63,7 @@ initContainers:
 # break usability. Full dynamic scalability will be added in a future release.
 replicas: override-me
 podManagementPolicy: Parallel
-resources: 
+resources:
   requests:
     cpu: '3'
     memory: '12Gi'
@@ -209,7 +209,7 @@ env:
   PROMETHEUS_MONITORING_ENABLED: true
   PROMETHEUS_MONITORING_GROUP_CLASSES: true
 
-  # Set a MEM limit for the Weaviate Pod so it can help you both increase GC-related 
+  # Set a MEM limit for the Weaviate Pod so it can help you both increase GC-related
   # performance as well as avoid GC-related out-of-memory (“OOM”) situations
   GOMEMLIMIT: 24GiB
 
@@ -263,13 +263,13 @@ backups:
     envconfig:
       # Configure folder where backups should be saved
       BACKUP_FILESYSTEM_PATH: /tmp/backups
-  
+
   s3:
     enabled: false
     # If one is using AWS EKS and has already configured K8s Service Account
     # that holds the AWS credentials one can pass a name of that service account
     # here using this setting.
-    # NOTE: the root `serviceAccountName` config has priority over this one, and 
+    # NOTE: the root `serviceAccountName` config has priority over this one, and
     # if the root one is set this one will NOT overwrite it. This one is here for
     # backwards compatibility.
     serviceAccountName:
@@ -278,17 +278,17 @@ backups:
       # Configure bucket where backups should be saved, this setting is mandatory
       BACKUP_S3_BUCKET: weaviate-backups
 
-      # Optional setting. Defaults to empty string. 
+      # Optional setting. Defaults to empty string.
       # Set this option if you want to save backups to a given location
       # inside the bucket
       # BACKUP_S3_PATH: path/inside/bucket
 
-      # Optional setting. Defaults to AWS S3 (s3.amazonaws.com). 
+      # Optional setting. Defaults to AWS S3 (s3.amazonaws.com).
       # Set this option if you have a MinIO storage configured in your environment
       # and want to use it instead of the AWS S3.
       # BACKUP_S3_ENDPOINT: custom.minio.endpoint.address
 
-      # Optional setting. Defaults to true. 
+      # Optional setting. Defaults to true.
       # Set this option if you don't want to use SSL.
       # BACKUP_S3_USE_SSL: true
 
@@ -301,7 +301,7 @@ backups:
     # You can pass the User credentials (access-key id and access-secret-key) in 2 ways:
     # 1. by setting the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY plain values in the `secrets` section below
     #     this chart will create a kubernetes secret for you with these key-values pairs
-    # 2. create Kubernetes secret/s with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY  keys and their respective values 
+    # 2. create Kubernetes secret/s with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY  keys and their respective values
     #     Set the Key and the secret where it is set in `envSecrets` section below
     secrets: {}
     #   AWS_ACCESS_KEY_ID: access-key-id (plain text)
@@ -349,7 +349,7 @@ backups:
       # Configure container where backups should be saved, this setting is mandatory
       BACKUP_AZURE_CONTAINER: weaviate-backups
 
-      # Optional setting. Defaults to empty string. 
+      # Optional setting. Defaults to empty string.
       # Set this option if you want to save backups to a given location
       # inside the container
       # BACKUP_AZURE_PATH: path/inside/container
@@ -360,7 +360,7 @@ backups:
     # 1. by setting the AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY
     #     or AZURE_STORAGE_CONNECTION_STRING plain values in the `secrets` section below
     #     this chart will create a kubernetes secret for you with these key-values pairs
-    # 2. create Kubernetes secret/s with AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY 
+    # 2. create Kubernetes secret/s with AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY
     #     or AZURE_STORAGE_CONNECTION_STRING and their respective values
     #     Set the Key and the secret where it is set in `envSecrets` section below
     secrets: {}
@@ -374,7 +374,33 @@ backups:
     #   AZURE_STORAGE_ACCOUNT: name-of-the-k8s-secret-containing-the-account-name
     #   AZURE_STORAGE_KEY: name-of-the-k8s-secret-containing-account-key
     #   AZURE_STORAGE_CONNECTION_STRING: name-of-the-k8s-secret-containing-connection-string
+offload:
+  s3:
+    enabled: true
+    envconfig:
+      # Configure bucket where backups should be saved, this setting is mandatory
+      OFFLOAD_S3_BUCKET: mt-load-test-offload
+      OFFLOAD_S3_ENDPOINT: https://storage.googleapis.com
+      OFFLOAD_S3_USE_SSL: true
+      OFFLOAD_TIMEOUT: 120
+      AWS_REGION: us-central1
 
+
+      # Optional setting. Defaults to empty string.
+      # Set this option if you want to save backups to a given location
+      # inside the bucket
+      # OFFLOAD_S3_PATH: path/inside/bucket
+
+      # Optional setting. Defaults to AWS S3 (s3.amazonaws.com).
+      # Set this option if you have a MinIO storage configured in your environment
+      # and want to use it instead of the AWS S3.
+      # OFFLOAD_S3_ENDPOINT: custom.minio.endpoint.address
+
+      # Optional setting. Defaults to true.
+      # Set this option if you don't want to use SSL.
+      # OFFLOAD_S3_USE_SSL: true
+
+      # You can pass environment
 
 # modules are extensions to Weaviate, they can be used to support various
 # ML-models, but also other features unrelated to model inference.
@@ -484,7 +510,7 @@ modules:
 
         # enable if running with CUDA support
         # nvidia.com/gpu: 1
-    
+
     # It is possible to add a ServiceAccount to this module's Pods, it can be
     # used in cases where the module is in a private registry and you want to
     # give access to the registry only to this pod.
@@ -545,7 +571,7 @@ modules:
 
             # enable if running with CUDA support
             # nvidia.com/gpu: 1
-        
+
         # You can guide where the pods are scheduled on a per-module basis,
         # as well as for Weaviate overall. Each module accepts nodeSelector,
         # tolerations, and affinity configuration. If it is set on a per-
@@ -599,7 +625,7 @@ modules:
 
             # enable if running with CUDA support
             # nvidia.com/gpu: 1
-        
+
         # You can guide where the pods are scheduled on a per-module basis,
         # as well as for Weaviate overall. Each module accepts nodeSelector,
         # tolerations, and affinity configuration. If it is set on a per-
@@ -776,7 +802,7 @@ modules:
 
         # enable if running with CUDA support
         # nvidia.com/gpu: 1
-    
+
     # It is possible to add a ServiceAccount to this module's Pods, it can be
     # used in cases where the module is in a private registry and you want to
     # give access to the registry only to this pod.
@@ -888,7 +914,7 @@ modules:
 
         # enable if running with CUDA support
         # nvidia.com/gpu: 1
-    
+
     # It is possible to add a ServiceAccount to this module's Pods, it can be
     # used in cases where the module is in a private registry and you want to
     # give access to the registry only to this pod.
@@ -933,7 +959,7 @@ modules:
       limits:
         cpu: '500m'
         memory: '500Mi'
-    
+
     # It is possible to add a ServiceAccount to this module's Pods, it can be
     # used in cases where the module is in a private registry and you want to
     # give access to the registry only to this pod.
@@ -995,7 +1021,7 @@ modules:
 
         # enable if running with CUDA support
         # nvidia.com/gpu: 1
-    
+
     # It is possible to add a ServiceAccount to this module's Pods, it can be
     # used in cases where the module is in a private registry and you want to
     # give access to the registry only to this pod.
@@ -1056,7 +1082,7 @@ modules:
 
         # enable if running with CUDA support
         # nvidia.com/gpu: 1
-    
+
     # It is possible to add a ServiceAccount to this module's Pods, it can be
     # used in cases where the module is in a private registry and you want to
     # give access to the registry only to this pod.

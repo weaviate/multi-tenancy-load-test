@@ -194,6 +194,21 @@ def reset_schema():
     print(f"YAML from '{yaml_file_path}' applied.")
     k8s.wait_for_job_completion(job_name, cfg.namespace, 5, max_wait_time=180)
 
+def tenants_offload():
+    console.print(Markdown("## Start Offloading tenants"))
+    job_name = "tenant-offload"
+    yaml_file_path = "importer/manifests/tenant-offload.yaml"
+    k8s.apply_yaml(yaml_file_path, cfg.namespace, env)
+    print(f"YAML from '{yaml_file_path}' applied.")
+    k8s.wait_for_job_completion(job_name, cfg.namespace, 5, max_wait_time=900)
+
+def tenants_onload():
+    console.print(Markdown("## Start Onloading tenants"))
+    job_name = "tenant-onload"
+    yaml_file_path = "importer/manifests/tenant-onload.yaml"
+    k8s.apply_yaml(yaml_file_path, cfg.namespace, env)
+    print(f"YAML from '{yaml_file_path}' applied.")
+    k8s.wait_for_job_completion(job_name, cfg.namespace, 5, max_wait_time=900)
 
 def import_data():
     console.print(Markdown("## Start Import Data"))
@@ -412,6 +427,8 @@ def main(zone, region, namespace, project, cluster_name, step):
             "Reset schema": reset_schema,
             "Import data": import_data,
             "Wait for import to finish": wait_for_import,
+            "Offload tenants": tenants_offload,
+            "Onload tenants": tenants_onload,
             "Query": query,
             "Create Backup": create_backup,
             "Wait for Backup Creation": wait_for_backup,
@@ -445,6 +462,8 @@ def main(zone, region, namespace, project, cluster_name, step):
             "reset_schema": reset_schema,
             "import_data": import_data,
             "wait_for_import": wait_for_import,
+            "tenants_offload": tenants_offload,
+            "tenants_onload": tenants_onload,
             "query": query,
             "create_backup": create_backup,
             "wait_for_backup": wait_for_backup,

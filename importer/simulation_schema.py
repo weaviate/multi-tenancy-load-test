@@ -9,6 +9,7 @@ host = os.getenv("HOST") or "localhost"
 port = int(os.getenv("PORT") or 8080)
 host_grpc = os.getenv("HOST_GRPC") or "localhost"
 port_grpc = int(os.getenv("PORT_GRPC") or 50051)
+replication_factor = int(os.getenv("REPLICATION_FACTOR") or 1)
 
 client = weaviate.connect_to_custom(
     http_host=host,
@@ -40,7 +41,7 @@ client.collections.create(
     ),
     multi_tenancy_config=wvc.config.Configure.multi_tenancy(True),
     vectorizer_config=None,
-    replication_config=wvc.config.Configure.replication(factor=3),
+    replication_config=wvc.config.Configure.replication(factor=replication_factor),
 )
 
 client.close()

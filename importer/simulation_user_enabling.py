@@ -50,7 +50,7 @@ def user_enabling_loop():
         tenants_names = [
             name
             for name, tenant in tenants.items()
-            if tenant.activity_status == weaviate.schema.TenantActivityStatus.COLD
+            if tenant.activity_status == weaviate.schema.TenantActivityStatus.FROZEN
         ]
 
         tenants_to_enable = get_random_tenants(

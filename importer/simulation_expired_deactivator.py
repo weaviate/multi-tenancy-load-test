@@ -50,7 +50,7 @@ def deactivate_loop():
                 tenants=[
                     Tenant(
                         name=object.properties["tenant_name"],
-                        activity_status=weaviate.schema.TenantActivityStatus.COLD,
+                        activity_status=weaviate.schema.TenantActivityStatus.FROZEN,
                     )
                     for object in res.objects
                 ]

@@ -51,6 +51,9 @@ jobs:
       run: python3 run.py --step=create_cluster
 
     - name: Deploy Weaviate
+      env:
+        ACCESS_KEY: ${{ secrets.GCS_HMAC_ACCESS_KEY }}
+        SECRET_KEY: ${{ secrets.GCS_HMAC_SECRET_KEY }}
       run: python3 run.py --step=deploy_weaviate
 
     - name: Deploy Observability
@@ -70,6 +73,12 @@ jobs:
 
     - name: Wait for import
       run: python3 run.py --step=wait_for_import
+
+    - name: Offload Tenants
+      run: python3 run.py --step=tenants_offload
+
+    - name: Onload Tenants
+      run: python3 run.py --step=tenants_onload
 
     - name: Query
       run: python3 run.py --step=query
