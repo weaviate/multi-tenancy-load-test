@@ -105,7 +105,7 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "1.24.21" # trigger new github action run
+    cfg.weaviate_version = "1.24.21" # why wont wait for weaviate to be ready complete?
 
     cfg.replication_factor = 1
     cfg.tenants_per_job = 5000
