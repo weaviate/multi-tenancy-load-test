@@ -105,11 +105,11 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "1.28.4-d84111f"
+    cfg.weaviate_version = "1.29.0-rc.2-f66e3c8"
 
     cfg.replication_factor = 3
-    cfg.tenants_per_job = 5000
-    cfg.objects_per_tenant = 1000
+    cfg.tenants_per_job = 1500
+    cfg.objects_per_tenant = 200
     cfg.vector_dimensions = 1536
     cfg.parallel_importers = 12
     cfg.importer_completions = 12
