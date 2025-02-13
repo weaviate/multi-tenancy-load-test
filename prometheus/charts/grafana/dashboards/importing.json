@@ -199,7 +199,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(batch_durations_ms_sum{operation=\"total_api_level\"}[$__rate_interval])/rate(batch_durations_ms_count{operation=\"total_api_level\"}[$__rate_interval])",
+          "expr": "rate(batch_durations_ms_sum{operation=\"total_api_level_grpc\"}[$__rate_interval])/rate(batch_durations_ms_count{operation=\"total_api_level_grpc\"}[$__rate_interval])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"

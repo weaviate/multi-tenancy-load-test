@@ -1868,6 +1868,8 @@ grafana:
         file: dashboards/home.json
       importing:
         file: dashboards/importing.json
+      custom-dashboard:
+        file: dashboards/custom-dashboard.json
     #   prometheus-stats:
     #     gnetId: 2
     #     revision: 2

@@ -46,7 +46,7 @@ resource "google_container_node_pool" "server_pool" {
   node_count = var.server_node_pool_size
 
   node_config {
-    machine_type = "e2-standard-8"
+    machine_type = "e2-standard-4"
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/logging.write",
