@@ -228,6 +228,8 @@ env:
 
   PERSISTENCE_LSM_ACCESS_STRATEGY: pread
 
+  ASYNC_REPLICATION_HASHTREE_HEIGHT: 6
+
   ##########################
   # API Keys with ENV Vars #
   ##########################
