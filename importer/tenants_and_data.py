@@ -95,7 +95,7 @@ def do(client: weaviate.WeaviateClient):
 
 def load_records(client: weaviate.WeaviateClient, tenant_names):
     for tenant in tenant_names:
-        with client.batch.fixed_size(100, 4) as batch:
+        with client.batch.dynamic() as batch:
             for i in range(objects_per_tenant):
                 batch.add_object(
                     "MultiTenancyTest",

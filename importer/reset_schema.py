@@ -1,11 +1,6 @@
 import weaviate
 import weaviate.classes as wvc
-import time
-import random
-import sys
-import uuid
 import os
-import requests
 from loguru import logger
 from typing import Optional
 
@@ -30,7 +25,7 @@ def reset_schema(client: weaviate.WeaviateClient):
         "MultiTenancyTest",
         vectorizer_config=None,
         multi_tenancy_config=wvc.config.Configure.multi_tenancy(enabled=True),
-        replication_config=wvc.config.Configure.replication(factor=replication_factor),
+        replication_config=wvc.config.Configure.replication(factor=replication_factor, async_enabled=True, deletion_strategy=wvc.config.ReplicationDeletionStrategy.TIME_BASED_RESOLUTION),
         vector_index_config=wvc.config.Configure.VectorIndex.flat(
             quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq()
         ),

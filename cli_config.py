@@ -105,9 +105,9 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "preview-fix-potential-deadlock-by-removing-recursive-read-locking-e760e1f"
+    cfg.weaviate_version = "1.28.4-d84111f"
 
-    cfg.replication_factor = 1
+    cfg.replication_factor = 3
     cfg.tenants_per_job = 5000
     cfg.objects_per_tenant = 1000
     cfg.vector_dimensions = 1536

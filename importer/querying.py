@@ -4,7 +4,6 @@ import weaviate.classes as wvc
 import time
 import sys
 import os
-import requests
 import random
 from loguru import logger
 from threading import Thread
