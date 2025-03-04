@@ -105,7 +105,7 @@ def init_config(
 
     # todo: make all of these configurable from the outside
     cfg.weaviate_pods = 12
-    cfg.weaviate_version = "1.29.0-rc.2-f66e3c8"
+    cfg.weaviate_version = "stable-v1.28-61d2c32"
 
     cfg.replication_factor = 3
     cfg.tenants_per_job = 1500

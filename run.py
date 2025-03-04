@@ -34,6 +34,57 @@ def create_cluster():
 
 def destroy_cluster():
     console.print(Markdown(f"## Destroy GKE cluster ({cfg.cluster_name})"))
+
+    # First, clean up Kubernetes resources including PVCs
+    try:
+        # Ensure we have the correct Kubernetes context without creating resources
+        set_kubernetes_context(cfg.cluster_name, cfg.zone, cfg.project, cfg.namespace)
+
+        # First uninstall the Helm releases properly
+        console.print(Markdown("### Uninstalling Helm releases"))
+
+        # Uninstall Weaviate
+        subprocess.run(
+            ["helm", "uninstall", "weaviate-load-test", "-n", cfg.namespace, "--wait"],
+            check=False  # Don't fail if the release doesn't exist
+        )
+
+        # Uninstall Observability stack
+        subprocess.run(
+            ["helm", "uninstall", "observability", "-n", "monitoring", "--wait"],
+            check=False  # Don't fail if the release doesn't exist
+        )
+
+        # Delete the namespaces which will also delete all resources in them including PVCs
+        console.print(Markdown("### Cleaning up Kubernetes namespaces"))
+        for namespace in [cfg.namespace, "monitoring"]:
+            subprocess.run(
+                ["kubectl", "delete", "namespace", namespace, "--grace-period=0", "--force"],
+                check=False  # Don't fail if namespace doesn't exist
+            )
+
+        # Additional safety: explicitly delete any PVCs that might be left
+        console.print(Markdown("### Checking for any remaining PVCs"))
+        subprocess.run(
+            ["kubectl", "delete", "pvc", "--all", "--all-namespaces", "--grace-period=0", "--force"],
+            check=False  # Don't fail if no PVCs exist
+        )
+
+        # Also check for and delete any orphaned PVs
+        console.print(Markdown("### Checking for any orphaned Persistent Volumes"))
+        subprocess.run(
+            ["kubectl", "delete", "pv", "--all", "--grace-period=0", "--force"],
+            check=False  # Don't fail if no PVs exist
+        )
+
+        # Wait a moment for resources to be cleaned up
+        console.print(Markdown("### Waiting for resources to be cleaned up"))
+        time.sleep(10)
+    except Exception as e:
+        console.print(f"[yellow]Warning: Error during Kubernetes cleanup: {e}[/yellow]")
+        console.print("[yellow]Continuing with cluster destruction...[/yellow]")
+
+    # Now destroy the cluster with Terraform
     subprocess.run(
         ["terraform", "destroy", "--auto-approve"], cwd="terraform", env=env, check=True
     )
@@ -44,8 +95,29 @@ def run_command(command):
         command,
         shell=True,
         stderr=subprocess.STDOUT,
+        env=env
     )
     print("Command output:", output.decode())
+    return output.decode()
+
+
+def set_kubernetes_context(cluster_name, zone, project, k8s_namespace):
+    """
+    Sets the Kubernetes context to the specified cluster and namespace without creating any resources.
+    This is useful for cleanup operations where we only need to access the cluster.
+    """
+    console.print(Markdown(f"### Setting Kubernetes context to cluster {cluster_name} in namespace {k8s_namespace}"))
+
+    # gcloud command to get credentials
+    gcloud_command = f'gcloud container clusters get-credentials "{cluster_name}" --zone "{zone}" --project {project}'
+    run_command(gcloud_command)
+
+    # kubectl command to set context
+    kubectl_set_context = f"kubectl config set-context $(kubectl config current-context) --namespace {k8s_namespace}"
+    run_command(kubectl_set_context)
+
+    # Load the kube config
+    config.load_kube_config()
 
 
 def setup_kubernetes_cluster(cluster_name, zone, project, k8s_namespace):
